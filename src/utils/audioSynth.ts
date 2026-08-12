@@ -9,6 +9,7 @@ export interface GuitarToneParams {
   reverb: number;         // 0 to 100 (% wet mix level)
   brightness: number;     // 1000 to 8000 (Hz lowpass cutoff)
   tone: number;           // Master tone slider 0.0 to 1.0 (dark -> warm -> bright -> sharp)
+  volume: number;         // Master Synth Volume 0.1 to 2.0 (default 1.0)
   loopBlend: number;      // 0.10 to 0.90 (Feedback loop loss filter)
   excitationCutoff: number; // 1000 to 8000 Hz (Pick attack filter)
   bodyMix: number;        // 0.0 to 0.8 (Acoustic body IR mix)
@@ -20,6 +21,7 @@ export interface GuitarToneParams {
 export const PRESET_DSP_DEFAULTS: Record<GuitarPreset, Omit<GuitarToneParams, 'effectsEnabled' | 'sustain' | 'reverb'>> = {
   acoustic: {
     tone: 0.35,
+    volume: 1.0,
     brightness: 3600,
     loopBlend: 0.32,
     excitationCutoff: 3200,
@@ -30,6 +32,7 @@ export const PRESET_DSP_DEFAULTS: Record<GuitarPreset, Omit<GuitarToneParams, 'e
   },
   nylon: {
     tone: 0.25,
+    volume: 1.0,
     brightness: 2600,
     loopBlend: 0.25,
     excitationCutoff: 2200,
@@ -40,6 +43,7 @@ export const PRESET_DSP_DEFAULTS: Record<GuitarPreset, Omit<GuitarToneParams, 'e
   },
   'electric-clean': {
     tone: 0.60,
+    volume: 1.0,
     brightness: 5200,
     loopBlend: 0.42,
     excitationCutoff: 5500,
@@ -50,6 +54,7 @@ export const PRESET_DSP_DEFAULTS: Record<GuitarPreset, Omit<GuitarToneParams, 'e
   },
   overdrive: {
     tone: 0.75,
+    volume: 1.0,
     brightness: 3200,
     loopBlend: 0.40,
     excitationCutoff: 5000,

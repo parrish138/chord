@@ -192,6 +192,27 @@ export const AudioToneWidget: React.FC = () => {
                 </div>
               </div>
 
+              {/* Master Synth Volume Slider */}
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-primary/40 space-y-1.5 shadow-inner">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="flex items-center gap-1.5 text-primary">
+                    <Volume2 className="h-3.5 w-3.5 text-primary" />
+                    <span>Master Synth Volume:</span>
+                  </span>
+                  <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                    {Math.round((toneParams.volume !== undefined ? toneParams.volume : 1.0) * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  value={[toneParams.volume !== undefined ? toneParams.volume : 1.0]}
+                  onValueChange={vals => handleToneParamChange('volume', vals[0])}
+                  min={0.1}
+                  max={2.0}
+                  step={0.05}
+                  className="py-1"
+                />
+              </div>
+
               {/* Master Tone Slider (darker -> brighter) */}
               <div className="p-3 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-1.5 shadow-inner">
                 <div className="flex justify-between items-center text-xs font-semibold">

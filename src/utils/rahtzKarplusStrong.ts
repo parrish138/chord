@@ -33,25 +33,31 @@ function getAudioContext(): AudioContext {
 
 function getMasterLimiterBus(ctx: AudioContext): { masterHeadroom: GainNode; masterLimiter: DynamicsCompressorNode } {
   if (!masterHeadroomGain || masterHeadroomGain.context !== ctx) {
-    // Master Headroom scaling (0.40 gain prevents clipping across 6-string sum)
     masterHeadroomGain = ctx.createGain();
-    masterHeadroomGain.gain.setValueAtTime(0.40, ctx.currentTime);
+    masterHeadroomGain.gain.setValueAtTime(0.55, ctx.currentTime);
 
-    // Master Brickwall Limiter (DynamicsCompressorNode configured to prevent > 0dBFS clipping)
     masterLimiterCompressor = ctx.createDynamicsCompressor();
-    masterLimiterCompressor.threshold.setValueAtTime(-2.5, ctx.currentTime);
+    masterLimiterCompressor.threshold.setValueAtTime(-2.0, ctx.currentTime);
     masterLimiterCompressor.knee.setValueAtTime(0.0, ctx.currentTime);
     masterLimiterCompressor.ratio.setValueAtTime(20.0, ctx.currentTime);
     masterLimiterCompressor.attack.setValueAtTime(0.001, ctx.currentTime);
     masterLimiterCompressor.release.setValueAtTime(0.040, ctx.currentTime);
 
     masterOutputGain = ctx.createGain();
-    masterOutputGain.gain.setValueAtTime(0.85, ctx.currentTime);
+    masterOutputGain.gain.setValueAtTime(1.0, ctx.currentTime);
 
     masterHeadroomGain.connect(masterLimiterCompressor);
     masterLimiterCompressor.connect(masterOutputGain);
     masterOutputGain.connect(ctx.destination);
   }
+
+  // Update dynamic master output volume based on user volume slider
+  const activeParams = getGuitarToneParams();
+  const vol = activeParams.volume !== undefined ? activeParams.volume : 1.0;
+  if (masterOutputGain) {
+    masterOutputGain.gain.setValueAtTime(vol * 1.35, ctx.currentTime);
+  }
+
   return { masterHeadroom: masterHeadroomGain, masterLimiter: masterLimiterCompressor! };
 }
 
