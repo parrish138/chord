@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { TabTrack, TabColumn } from '../../types/tab';
-import { TabRenderer } from './TabRenderer';
+import { TabRenderer, getMidiNote, getNoteDetailsFromMidi } from './TabRenderer';
 import { Button } from '../ui/button';
 import { playPluckedNote, getFrequencyForStringAndFret, getGuitarPreset } from '../../utils/audioSynth';
-import { Play, Square, Plus, Trash2, Copy, Check, Music, Sliders } from 'lucide-react';
+import { detectChordName } from '../../utils/chordDetector';
+import { getNoteForStringAndFret } from '../../utils/scaleEngine';
+import { Play, Square, Plus, Trash2, Copy, Check, Music, Sliders, Sparkles, Music2, Hash } from 'lucide-react';
 import { Slider } from '../ui/slider';
 
 const INITIAL_TRACK: TabTrack = {
@@ -89,19 +91,39 @@ export const TabEditor: React.FC = () => {
   const handleNoteClick = (colIdx: number, stringNum: number) => {
     setSelectedColumnIndex(colIdx);
     const updatedCols = [...track.columns];
-    const targetCol = { ...updatedCols[colIdx] };
+    const targetCol = { ...updatedCols[colIdx], notes: [...updatedCols[colIdx].notes] };
 
     const existingNoteIdx = targetCol.notes.findIndex(n => n.stringNum === stringNum);
 
     if (existingNoteIdx >= 0) {
-      // Remove note
-      targetCol.notes.splice(existingNoteIdx, 1);
+      if (targetCol.notes[existingNoteIdx].fret === selectedFret) {
+        // Toggle OFF if clicking string with same fret
+        targetCol.notes.splice(existingNoteIdx, 1);
+      } else {
+        // Update fret to selectedFret
+        targetCol.notes[existingNoteIdx] = { stringNum, fret: selectedFret };
+        const freq = getFrequencyForStringAndFret(stringNum, selectedFret);
+        playPluckedNote(freq, 0, 1.5, 0.4, stringNum, getGuitarPreset());
+      }
     } else {
       // Add note with selected fret
       targetCol.notes.push({ stringNum: stringNum, fret: selectedFret });
-      // Play audio sample honoring active tone preset
       const freq = getFrequencyForStringAndFret(stringNum, selectedFret);
       playPluckedNote(freq, 0, 1.5, 0.4, stringNum, getGuitarPreset());
+    }
+
+    // Dynamic Auto-Detection of Chord Label & Standard Notation Hints
+    if (targetCol.notes.length > 0) {
+      const positions = targetCol.notes.map(n => ({ string: n.stringNum, fret: n.fret }));
+      const detection = detectChordName(positions, [], [], []);
+      if (targetCol.notes.length >= 2 && detection.primaryName && !detection.primaryName.includes('Muted')) {
+        targetCol.chordLabel = detection.primaryName;
+      } else {
+        const singleNote = getNoteForStringAndFret(targetCol.notes[0].stringNum, targetCol.notes[0].fret);
+        targetCol.chordLabel = singleNote.noteName;
+      }
+    } else {
+      targetCol.chordLabel = undefined;
     }
 
     updatedCols[colIdx] = targetCol;
@@ -158,6 +180,8 @@ export const TabEditor: React.FC = () => {
     setTimeout(() => setCopiedAscii(false), 2000);
   };
 
+  const activeInspectCol = track.columns[selectedColumnIndex] || track.columns[0];
+
   return (
     <div className="space-y-6">
       {/* Top Toolbar */}
@@ -169,7 +193,7 @@ export const TabEditor: React.FC = () => {
               <h3 className="font-extrabold text-xl tracking-tight">Interactive Tablature Studio & Player</h3>
             </div>
             <p className="text-xs text-muted-foreground">
-              Click string lines to add fret numbers, play back sequence audio, and export ASCII tabs.
+              Click string lines to add fret numbers (0 to 24), play back sequence audio, and view dynamic standard notation hints.
             </p>
           </div>
 
@@ -178,7 +202,7 @@ export const TabEditor: React.FC = () => {
               size="sm"
               variant={isPlaying ? 'destructive' : 'default'}
               onClick={() => setIsPlaying(!isPlaying)}
-              className="gap-2"
+              className="gap-2 font-bold"
             >
               {isPlaying ? <Square className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
               {isPlaying ? 'Stop Playback' : 'Play TAB Sequence'}
@@ -187,48 +211,79 @@ export const TabEditor: React.FC = () => {
         </div>
 
         {/* Editing Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-          {/* Fret Input Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-muted-foreground">Active Fret Number to Insert</label>
-            <div className="flex flex-wrap gap-1.5">
-              {[0, 1, 2, 3, 4, 5, 7, 8, 10, 12].map(fret => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+          {/* Fret Input Selector (Supports Frets 0 to 24) */}
+          <div className="space-y-2 md:col-span-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+              <span>Active Fret Number to Insert (Range 0 - 24):</span>
+              <span className="font-mono text-purple-400 font-bold">Selected Fret: #{selectedFret}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 17, 19, 21, 24].map(fret => (
                 <Button
                   key={`fret-picker-${fret}`}
                   size="sm"
                   variant={selectedFret === fret ? 'default' : 'outline'}
                   onClick={() => setSelectedFret(fret)}
-                  className="font-bold h-8 min-w-[2.2rem] text-xs"
+                  className="font-bold h-8 px-2 min-w-[2.1rem] text-xs"
                 >
                   {fret}
                 </Button>
               ))}
+
+              {/* Direct Numeric Fret Input Stepper (0 to 24) */}
+              <div className="flex items-center gap-1 ml-2 bg-muted/40 p-1 rounded-lg border border-border/40">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 text-xs"
+                  onClick={() => setSelectedFret(prev => Math.max(0, prev - 1))}
+                >
+                  -
+                </Button>
+                <input
+                  type="number"
+                  min={0}
+                  max={24}
+                  value={selectedFret}
+                  onChange={e => setSelectedFret(Math.min(24, Math.max(0, parseInt(e.target.value) || 0)))}
+                  className="w-10 h-6 text-center font-mono font-bold text-xs bg-background border border-border/60 rounded"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 text-xs"
+                  onClick={() => setSelectedFret(prev => Math.min(24, prev + 1))}
+                >
+                  +
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Tempo Controls */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-semibold text-muted-foreground">
-              <span>Tempo (BPM)</span>
-              <span>{track.tempoBpm} BPM</span>
+          {/* Tempo Controls & Beat Operations */}
+          <div className="space-y-4 flex flex-col justify-between">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                <span>Tempo (BPM)</span>
+                <span>{track.tempoBpm} BPM</span>
+              </div>
+              <Slider
+                value={[track.tempoBpm]}
+                min={60}
+                max={200}
+                step={5}
+                onValueChange={([val]) => setTrack({ ...track, tempoBpm: val })}
+              />
             </div>
-            <Slider
-              value={[track.tempoBpm]}
-              min={60}
-              max={200}
-              step={5}
-              onValueChange={([val]) => setTrack({ ...track, tempoBpm: val })}
-            />
-          </div>
 
-          {/* Column Operations */}
-          <div className="space-y-2 flex flex-col justify-end">
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleAddColumn} className="gap-1 flex-1 text-xs">
+              <Button size="sm" variant="outline" onClick={handleAddColumn} className="gap-1 flex-1 text-xs font-bold">
                 <Plus className="h-3.5 w-3.5" />
                 Add Beat
               </Button>
-              <Button size="sm" variant="destructive" onClick={handleRemoveColumn} className="gap-1 flex-1 text-xs">
+              <Button size="sm" variant="destructive" onClick={handleRemoveColumn} className="gap-1 flex-1 text-xs font-bold">
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete Beat
               </Button>
@@ -243,6 +298,58 @@ export const TabEditor: React.FC = () => {
         activeColumnIndex={activePlaybackIndex >= 0 ? activePlaybackIndex : selectedColumnIndex}
         onNoteClick={handleNoteClick}
       />
+
+      {/* Dynamic Standard Notation Hints & Pitch Inspector */}
+      {activeInspectCol && (
+        <div className="p-5 rounded-2xl glass-panel border border-border/40 space-y-3">
+          <div className="flex items-center justify-between border-b border-border/40 pb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-400" />
+              <h4 className="font-bold text-sm">
+                Selected Beat #{selectedColumnIndex + 1} &bull; Standard Notation & Pitch Inspector
+              </h4>
+            </div>
+            {activeInspectCol.chordLabel && (
+              <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30">
+                {activeInspectCol.chordLabel}
+              </span>
+            )}
+          </div>
+
+          {activeInspectCol.notes.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">No notes in this beat column yet. Click string lines on the staff above to insert fret numbers!</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {activeInspectCol.notes.map((nObj, nIdx) => {
+                const midi = getMidiNote(nObj.stringNum, nObj.fret);
+                const details = getNoteDetailsFromMidi(midi);
+                const freq = getFrequencyForStringAndFret(nObj.stringNum, nObj.fret);
+
+                return (
+                  <div
+                    key={`inspect-note-${nIdx}`}
+                    className="p-3 rounded-xl border border-border/40 bg-muted/30 space-y-1 text-xs font-mono"
+                  >
+                    <div className="flex items-center justify-between font-bold">
+                      <span className="text-primary text-sm">{details.noteNameWithOctave}</span>
+                      <span className="text-muted-foreground text-[11px]">String {nObj.stringNum} &bull; Fret {nObj.fret}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Frequency:</span>
+                      <span className="font-bold text-foreground">{freq.toFixed(1)} Hz</span>
+                    </div>
+
+                    <div className="text-[10px] text-purple-400 font-sans">
+                      {details.totalDiatonicStep === 6 ? 'Middle line B4 (Treble Clef)' : details.totalDiatonicStep > 10 ? `${Math.floor((details.totalDiatonicStep - 10)/2) || 1} Ledger lines above staff` : details.totalDiatonicStep < 2 ? `${Math.floor((2 - details.totalDiatonicStep)/2) || 1} Ledger lines below staff` : 'Standard 5-Line Treble Staff'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ASCII Export Box */}
       <div className="p-6 rounded-2xl glass-panel space-y-3">

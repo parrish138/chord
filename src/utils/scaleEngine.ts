@@ -245,6 +245,7 @@ export function generateFretboardScale(
           freq,
           interval,
           isRoot,
+          isScaleNote: isMatch,
           isEnabled: isMatch || scaleId === 'all-notes',
         });
       }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CanvasWidgetConfig, CanvasWidgetId } from '../../types/canvas';
 import { GuitarNeckScaleStudio } from '../scale/GuitarNeckScaleStudio';
+import { ScalePresetsSelector } from '../scale/ScalePresetsSelector';
 import { UnifiedGuitarSequencer } from './UnifiedGuitarSequencer';
 import { TabEditor } from '../tab/TabEditor';
 import { AudioToneWidget } from '../audio/AudioToneWidget';
@@ -87,6 +88,11 @@ const INITIAL_WIDGET_CONFIGS: CanvasWidgetConfig[] = [
 export const CanvasStudio: React.FC = () => {
   const [widgets, setWidgets] = useState<CanvasWidgetConfig[]>(INITIAL_WIDGET_CONFIGS);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+
+  // Shared Scale State across Canvas Widgets
+  const [rootNote, setRootNote] = useState<string>('C');
+  const [selectedScaleId, setSelectedScaleId] = useState<string>('major');
+  const [displayMode, setDisplayMode] = useState<'interval' | 'noteName' | 'fingering'>('interval');
 
   // Toggle widget enabled state
   const handleToggleWidget = (id: CanvasWidgetId) => {
@@ -273,12 +279,27 @@ export const CanvasStudio: React.FC = () => {
               {widget.isExpanded && (
                 <div className="p-6">
                   {widget.id === 'scale-presets' && (
-                    <div className="p-4 rounded-xl bg-muted/20 border border-border/30">
-                      <p className="text-xs text-muted-foreground mb-3">Scale presets & tonic selection controls are loaded inside the 24-fret neck component below.</p>
-                    </div>
+                    <ScalePresetsSelector
+                      rootNote={rootNote}
+                      onRootNoteChange={setRootNote}
+                      selectedScaleId={selectedScaleId}
+                      onSelectedScaleIdChange={setSelectedScaleId}
+                      displayMode={displayMode}
+                      onDisplayModeChange={setDisplayMode}
+                    />
                   )}
 
-                  {widget.id === 'neck-diagram' && <GuitarNeckScaleStudio />}
+                  {widget.id === 'neck-diagram' && (
+                    <GuitarNeckScaleStudio
+                      rootNote={rootNote}
+                      onRootNoteChange={setRootNote}
+                      selectedScaleId={selectedScaleId}
+                      onSelectedScaleIdChange={setSelectedScaleId}
+                      displayMode={displayMode}
+                      onDisplayModeChange={setDisplayMode}
+                      showPresetSelectorHeader={false}
+                    />
+                  )}
 
                   {widget.id === 'guitar-sequencer' && <UnifiedGuitarSequencer />}
 

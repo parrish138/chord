@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ChordDefinition, DiagramOptions, DiagramTheme } from '../../types/chord';
 import { getIntervalAbbreviation } from '../../utils/chordTheoryEngine';
+import { getNoteForStringAndFret } from '../../utils/scaleEngine';
 import { cn } from '../ui/button';
-import { Layers, Fingerprint, Music } from 'lucide-react';
+import { Layers, Fingerprint, Music, Sparkles, Settings } from 'lucide-react';
 
 export interface ChordDiagramProps {
   chord: ChordDefinition;
@@ -113,8 +114,8 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
     interactive = false,
   } = options;
 
-  // Local state for Pop-Out Label Mode (Fingering vs Interval)
-  const [activeLabelMode, setActiveLabelMode] = useState<'fingering' | 'interval'>(options.labelMode || 'fingering');
+  // Local state for Pop-Out Label Mode (Fingering vs Interval vs Note)
+  const [activeLabelMode, setActiveLabelMode] = useState<'fingering' | 'interval' | 'note'>(options.labelMode || 'fingering');
   const [showPopout, setShowPopout] = useState<boolean>(false);
 
   const style = THEME_STYLES[theme] || THEME_STYLES['sleek-dark'];
@@ -158,13 +159,9 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
         <button
           onClick={() => setShowPopout(!showPopout)}
           className="p-1.5 rounded-full bg-background/80 hover:bg-background border border-border/60 shadow-md text-xs font-semibold text-muted-foreground hover:text-primary transition-all flex items-center gap-1 backdrop-blur-md"
-          title="Toggle Note Label Display Mode (Fingering vs Interval)"
+          title="Toggle Note Label Display Mode"
         >
-          {activeLabelMode === 'fingering' ? (
-            <Fingerprint className="h-3.5 w-3.5 text-purple-400" />
-          ) : (
-            <Music className="h-3.5 w-3.5 text-amber-400" />
-          )}
+          <Settings className="h-3.5 w-3.5" />
         </button>
 
         {/* Pop-Out Menu */}
@@ -198,6 +195,20 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
             >
               <Music className="h-3.5 w-3.5" />
               Interval Representation
+            </button>
+            <button
+              onClick={() => {
+                setActiveLabelMode('note');
+                setShowPopout(false);
+              }}
+              className={`w-full p-1.5 rounded-lg text-left text-xs flex items-center gap-2 transition-all ${
+                activeLabelMode === 'note'
+                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                  : 'hover:bg-muted text-muted-foreground'
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Note Name Representation
             </button>
           </div>
         )}
@@ -496,6 +507,43 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
                     </g>
                   );
                 })}
+
+              {/* Note Badges on Barre Notes in Note Mode */}
+              {activeLabelMode === 'note' &&
+                Array.from({ length: maxString - minString + 1 }).map((_, sOffset) => {
+                  const s = minString + sOffset;
+                  const hasOverlayPos = chord.positions.some(p => p.string === s && p.fret > barre.fret);
+                  if (hasOverlayPos) return null;
+
+                  const cx = getStringX(s);
+                  const noteName = getNoteForStringAndFret(s, barre.fret).noteName;
+                  const radius = size === 'sm' ? 6.5 : size === 'lg' ? 10.5 : 8.5;
+
+                  return (
+                    <g key={`barre-note-${idx}-${s}`}>
+                      <circle
+                        cx={cx}
+                        cy={y}
+                        r={radius}
+                        fill={style.dotFill}
+                        stroke={style.dotStroke}
+                        strokeWidth="1.5"
+                      />
+                      <text
+                        x={cx}
+                        y={y}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fill={style.dotText}
+                        fontSize={radius * 0.85}
+                        fontWeight="extrabold"
+                        fontFamily="monospace"
+                      >
+                        {noteName}
+                      </text>
+                    </g>
+                  );
+                })}
             </g>
           );
         })}
@@ -512,6 +560,7 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
 
           // Calculate interval badge label for fretted note
           const intervalAbbr = getIntervalAbbreviation(chord.name, pos.string, pos.fret);
+          const noteName = getNoteForStringAndFret(pos.string, pos.fret).noteName;
 
           return (
             <g key={`dot-${idx}`} className="transition-transform duration-150">
@@ -542,12 +591,14 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
                   textAnchor="middle"
                   dominantBaseline="central"
                   fill={isRoot ? style.bg : style.dotText}
-                  fontSize={radius * (activeLabelMode === 'interval' ? 0.95 : 1.05)}
+                  fontSize={radius * (activeLabelMode === 'interval' || activeLabelMode === 'note' ? 0.9 : 1.05)}
                   fontWeight="bold"
-                  fontFamily={activeLabelMode === 'interval' ? "monospace" : "system-ui, sans-serif"}
+                  fontFamily={activeLabelMode === 'interval' || activeLabelMode === 'note' ? "monospace" : "system-ui, sans-serif"}
                 >
                   {activeLabelMode === 'interval'
                     ? (intervalAbbr === '1' ? 'R' : intervalAbbr)
+                    : activeLabelMode === 'note'
+                    ? noteName
                     : (isRoot ? 'R' : pos.finger || '')}
                 </text>
               )}

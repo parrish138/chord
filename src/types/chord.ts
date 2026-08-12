@@ -68,5 +68,5 @@ export interface DiagramOptions {
   numFrets?: number;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   interactive?: boolean;
-  labelMode?: 'fingering' | 'interval';
+  labelMode?: 'fingering' | 'interval' | 'note';
 }

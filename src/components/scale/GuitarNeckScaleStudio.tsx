@@ -5,31 +5,136 @@ import { playPluckedNote, getGuitarPreset } from '../../utils/audioSynth';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
-import { Play, Pause, Sparkles, Plus, Trash2, Music, Eye, Layers, Globe, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, Sparkles, Plus, Trash2, Music, Eye, Layers, Globe, CheckCircle2, RotateCcw, ArrowUp, ArrowDown, Repeat, Shuffle, Volume2 } from 'lucide-react';
 
-export const GuitarNeckScaleStudio: React.FC = () => {
-  const [rootNote, setRootNote] = useState<string>('C');
-  const [selectedScaleId, setSelectedScaleId] = useState<string>('all-notes');
-  const [displayMode, setDisplayMode] = useState<'noteName' | 'interval'>('interval');
+export interface GuitarNeckScaleStudioProps {
+  rootNote?: string;
+  onRootNoteChange?: (rootNote: string) => void;
+  selectedScaleId?: string;
+  onSelectedScaleIdChange?: (scaleId: string) => void;
+  displayMode?: 'interval' | 'noteName' | 'fingering';
+  onDisplayModeChange?: (mode: 'interval' | 'noteName' | 'fingering') => void;
+  showPresetSelectorHeader?: boolean;
+}
+
+export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
+  rootNote: propRootNote,
+  onRootNoteChange,
+  selectedScaleId: propSelectedScaleId,
+  onSelectedScaleIdChange,
+  displayMode: propDisplayMode,
+  onDisplayModeChange,
+  showPresetSelectorHeader = true,
+}) => {
+  const [internalRootNote, setInternalRootNote] = useState<string>('C');
+  const [internalSelectedScaleId, setInternalSelectedScaleId] = useState<string>('major');
+  const [internalDisplayMode, setInternalDisplayMode] = useState<'interval' | 'noteName' | 'fingering'>('interval');
+
+  const rootNote = propRootNote !== undefined ? propRootNote : internalRootNote;
+  const setRootNote = (note: string) => {
+    if (onRootNoteChange) onRootNoteChange(note);
+    setInternalRootNote(note);
+  };
+
+  const selectedScaleId = propSelectedScaleId !== undefined ? propSelectedScaleId : internalSelectedScaleId;
+  const setSelectedScaleId = (scaleId: string) => {
+    if (onSelectedScaleIdChange) onSelectedScaleIdChange(scaleId);
+    setInternalSelectedScaleId(scaleId);
+  };
+
+  const displayMode = propDisplayMode !== undefined ? propDisplayMode : internalDisplayMode;
+  const setDisplayMode = (mode: 'interval' | 'noteName' | 'fingering') => {
+    if (onDisplayModeChange) onDisplayModeChange(mode);
+    setInternalDisplayMode(mode);
+  };
+
   const [fretboardNotes, setFretboardNotes] = useState<FretboardNote[]>([]);
 
-  // Sequence Progression State
+  // Sequence Progression State & Arpeggio Direction State
   const [progression, setProgression] = useState<ScaleProgressionStep[]>([]);
   const [isPlayingSeq, setIsPlayingSeq] = useState<boolean>(false);
   const [activeStepIndex, setActiveStepIndex] = useState<number>(-1);
   const [bpm, setBpm] = useState<number>(100);
+  const [isPlayingArpeggio, setIsPlayingArpeggio] = useState<boolean>(false);
+  const [arpeggioDirection, setArpeggioDirection] = useState<'up' | 'down' | 'updown' | 'random'>('up');
+  const [mutedArpeggioNotes, setMutedArpeggioNotes] = useState<Set<string>>(new Set());
+
+  // Real-time Audio Visual Highlight State — only tracks one specific string+fret position
+  const [activePlayingFretKey, setActivePlayingFretKey] = useState<string | null>(null);
+
+  const triggerNoteHighlight = (stringNum: number, fret: number, durationMs: number = 300) => {
+    setActivePlayingFretKey(`${stringNum}-${fret}`);
+    setTimeout(() => setActivePlayingFretKey(null), durationMs);
+  };
+
+  const toggleMuteArpeggioNote = (noteName: string) => {
+    setMutedArpeggioNotes(prev => {
+      const next = new Set(prev);
+      if (next.has(noteName)) next.delete(noteName);
+      else next.add(noteName);
+      return next;
+    });
+  };
+
+  const handlePlayScaleArpeggio = () => {
+    if (isPlayingArpeggio) return;
+    const notes = getScaleNotes(rootNote, selectedScaleId).filter(n => !mutedArpeggioNotes.has(n.noteName));
+    if (notes.length === 0) return;
+
+    setIsPlayingArpeggio(true);
+    let sequence = [...notes];
+    if (arpeggioDirection === 'down') sequence.reverse();
+    else if (arpeggioDirection === 'updown') sequence = [...sequence, ...[...sequence].slice(0, -1).reverse()];
+    else if (arpeggioDirection === 'random') {
+      for (let i = sequence.length - 1; i > 0; i--) {
+        const r = Math.floor(Math.random() * (i + 1));
+        [sequence[i], sequence[r]] = [sequence[r], sequence[i]];
+      }
+    }
+
+    sequence.forEach((item, idx) => {
+      setTimeout(() => {
+        const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
+        const noteSemis = (NOTES_CHROMATIC.indexOf(item.noteName) - rootIdx + 12) % 12;
+        const midiPitch = 60 + noteSemis;
+        const freq = 440 * Math.pow(2, (midiPitch - 69) / 12);
+        playPluckedNote(freq, 0.8);
+
+        // Find one representative fret position for this note on the fretboard
+        const rep = fretboardNotes.find(n => n.noteName === item.noteName && n.isEnabled);
+        if (rep) triggerNoteHighlight(rep.stringNum, rep.fret, 250);
+
+        if (idx === sequence.length - 1) {
+          setTimeout(() => setIsPlayingArpeggio(false), 500);
+        }
+      }, idx * 220);
+    });
+  };
+
+  const [showOffScaleNotes, setShowOffScaleNotes] = useState<boolean>(false);
 
   const seqTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Re-generate fretboard notes across all 24 frets whenever rootNote or selectedScaleId changes
+  // Re-generate fretboard notes across all 24 frets whenever rootNote, selectedScaleId, or showOffScaleNotes changes
   useEffect(() => {
     const notes = generateFretboardScale(rootNote, selectedScaleId, 24, true);
-    setFretboardNotes(notes);
-  }, [rootNote, selectedScaleId]);
+    const scaleNoteNames = new Set(getScaleNotes(rootNote, selectedScaleId).map(n => n.noteName));
 
-  // Enable all notes across the neck
-  const handleEnableAllNotes = () => {
-    setFretboardNotes(prev => prev.map(n => ({ ...n, isEnabled: true })));
+    setFretboardNotes(
+      notes.map(n => {
+        const isInScale = scaleNoteNames.has(n.noteName);
+        return {
+          ...n,
+          isScaleNote: isInScale,
+          isEnabled: isInScale || showOffScaleNotes,
+        };
+      })
+    );
+  }, [rootNote, selectedScaleId, showOffScaleNotes]);
+
+  // Toggle off-scale notes visibility
+  const handleToggleOffScaleNotes = () => {
+    setShowOffScaleNotes(prev => !prev);
   };
 
   // Selected scale definition object
@@ -51,6 +156,7 @@ export const GuitarNeckScaleStudio: React.FC = () => {
   // Click a note on the neck to test audio & optionally add to progression
   const handleNeckNoteClick = (note: FretboardNote) => {
     playPluckedNote(note.freq, 0, 2.4, 0.45, note.stringNum, getGuitarPreset());
+    triggerNoteHighlight(note.stringNum, note.fret, 350);
 
     // Enable note if disabled
     if (!note.isEnabled) {
@@ -92,6 +198,7 @@ export const GuitarNeckScaleStudio: React.FC = () => {
         const currentStep = progression[stepIdx];
         if (currentStep) {
           playPluckedNote(currentStep.freq, 0, 2.4, 0.45, currentStep.stringNum, getGuitarPreset());
+          triggerNoteHighlight(currentStep.stringNum, currentStep.fret, Math.min(350, intervalMs * 0.8));
         }
         stepIdx++;
       };
@@ -124,132 +231,191 @@ export const GuitarNeckScaleStudio: React.FC = () => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header & Control Selectors */}
-      <div className="p-6 rounded-2xl glass-panel border border-border/40 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-400" />
-              <h3 className="text-2xl font-extrabold tracking-tight">Full 24-Fret Guitar Neck Scale Studio</h3>
+      {showPresetSelectorHeader && (
+        <div className="p-6 rounded-2xl glass-panel border border-border/40 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-400" />
+                <h3 className="text-2xl font-extrabold tracking-tight">Full 24-Fret Guitar Neck Scale Studio</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Interactive 24-fret neck mapping all notes and scales. Click any fret to play or program custom melodies!
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Interactive 24-fret neck mapping all notes and scales. Click any fret to play or program custom melodies!
-            </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant={showOffScaleNotes ? 'default' : 'outline'}
+                onClick={handleToggleOffScaleNotes}
+                className="gap-1.5 text-xs font-bold transition-all"
+              >
+                {showOffScaleNotes ? (
+                  <>
+                    <RotateCcw className="h-4 w-4 text-amber-300" />
+                    Revert to Scale
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 text-blue-400" />
+                    Show Off-Scale Notes
+                  </>
+                )}
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDisplayMode(displayMode === 'interval' ? 'noteName' : displayMode === 'noteName' ? 'fingering' : 'interval')}
+                className="gap-2 text-xs"
+              >
+                <Eye className="h-4 w-4" />
+                Display: <span className="font-bold capitalize">{displayMode === 'interval' ? 'Intervals' : displayMode === 'noteName' ? 'Note Names' : 'Suggested Fingering'}</span>
+              </Button>
+            </div>
           </div>
+
+          {/* Root Note & Scale Mode Selector Grids */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 1. Root Note Selector */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Root Note (Tonic):</label>
+              <div className="grid grid-cols-6 gap-1.5">
+                {NOTES_CHROMATIC.map(n => (
+                  <button
+                    key={`root-select-${n}`}
+                    onClick={() => setRootNote(n)}
+                    className={`py-2 rounded-lg font-mono font-bold text-xs transition-all ${
+                      rootNote === n
+                        ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/40'
+                        : 'bg-muted/70 hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Scale Category & Definition Selector */}
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scale / Fretboard Preset:</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {SCALE_DEFINITIONS.filter(s => s.id !== 'all-notes').map(scale => (
+                  <button
+                    key={`scale-select-${scale.id}`}
+                    onClick={() => setSelectedScaleId(scale.id)}
+                    className={`p-2.5 rounded-xl border text-left text-xs transition-all flex flex-col justify-between ${
+                      selectedScaleId === scale.id
+                        ? 'border-primary bg-primary/15 text-primary font-bold shadow-md ring-1 ring-primary/30'
+                        : 'border-border/60 hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <div className="font-bold flex items-center justify-between">
+                      <span className="line-clamp-1">{scale.name}</span>
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0 capitalize opacity-80">
+                        {scale.category.replace('-', ' ')}
+                      </Badge>
+                    </div>
+                    <p className="text-[10px] opacity-75 line-clamp-1 mt-1 font-normal">{scale.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Scale Notes Formula Badges */}
+          <div className="p-3.5 rounded-xl bg-muted/30 border border-border/40 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs font-semibold">
+              <div className="flex items-center gap-2">
+                <Music className="h-4 w-4 text-primary" />
+                <span>Scale Notes Formula ({scaleFormulaNotes.length} notes):</span>
+              </div>
+              <span className="text-[11px] text-muted-foreground font-normal">(Click notes to toggle ON/OFF for arpeggio preview)</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {scaleFormulaNotes.map((item, idx) => {
+                const isMuted = mutedArpeggioNotes.has(item.noteName);
+
+                return (
+                  <button
+                    key={`scale-note-formula-${idx}`}
+                    onClick={() => toggleMuteArpeggioNote(item.noteName)}
+                    className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 border shadow-sm transition-all cursor-pointer ${
+                      isMuted
+                        ? 'bg-stone-900/90 text-stone-500 border-stone-800 line-through opacity-40 hover:opacity-80 scale-95'
+                        : item.isRoot
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 ring-1 ring-amber-400/30'
+                        : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                    }`}
+                    title={`Click to ${isMuted ? 'ENABLE' : 'DISABLE'} ${item.noteName} in arpeggio preview`}
+                  >
+                    <span>{item.noteName}</span>
+                    <span className="text-[10px] opacity-70">({item.interval})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SVG Interactive 24-Fret Guitar Fretboard */}
+      <div className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/30 pb-3">
+          <h4 className="font-bold text-sm flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            24-Fret Full Guitar Neck Diagram ({rootNote} {currentScaleDef.name})
+          </h4>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              variant={selectedScaleId === 'all-notes' ? 'default' : 'outline'}
-              onClick={() => setSelectedScaleId('all-notes')}
-              className="gap-1.5 text-xs font-bold"
+              variant={showOffScaleNotes ? 'default' : 'outline'}
+              onClick={handleToggleOffScaleNotes}
+              className="gap-1 text-[11px] h-7 font-bold transition-all"
             >
-              <Globe className="h-4 w-4" />
-              All Notes Mode
+              {showOffScaleNotes ? (
+                <>
+                  <RotateCcw className="h-3.5 w-3.5 text-amber-300" />
+                  Revert to Scale
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3.5 w-3.5 text-blue-400" />
+                  Show Off-Scale
+                </>
+              )}
             </Button>
 
             <Button
               size="sm"
               variant="outline"
-              onClick={handleEnableAllNotes}
-              className="gap-1.5 text-xs text-muted-foreground hover:text-primary"
+              onClick={() => setDisplayMode(displayMode === 'interval' ? 'noteName' : displayMode === 'noteName' ? 'fingering' : 'interval')}
+              className="gap-1 text-[11px] h-7 font-bold"
             >
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              Enable All Frets
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setDisplayMode(displayMode === 'interval' ? 'noteName' : 'interval')}
-              className="gap-2 text-xs"
-            >
-              <Eye className="h-4 w-4" />
-              Display: <span className="font-bold capitalize">{displayMode}</span>
+              <Eye className="h-3.5 w-3.5" />
+              {displayMode === 'interval' ? 'Intervals' : displayMode === 'noteName' ? 'Note Names' : 'Fingering'}
             </Button>
           </div>
         </div>
 
-        {/* Root Note & Scale Mode Selector Grids */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* 1. Root Note Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Root Note (Tonic):</label>
-            <div className="grid grid-cols-6 gap-1.5">
-              {NOTES_CHROMATIC.map(n => (
-                <button
-                  key={`root-select-${n}`}
-                  onClick={() => setRootNote(n)}
-                  className={`py-2 rounded-lg font-mono font-bold text-xs transition-all ${
-                    rootNote === n
-                      ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/40'
-                      : 'bg-muted/70 hover:bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
+        {/* Color Legend for Neck Notes */}
+        <div className="flex flex-wrap items-center gap-4 text-xs font-mono bg-muted/20 px-3 py-1.5 rounded-lg border border-border/30">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Note Key:</span>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 ring-1 ring-amber-300" />
+            <span className="text-amber-300 font-bold">Root</span>
           </div>
-
-          {/* 2. Scale Category & Definition Selector */}
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scale / Fretboard Preset:</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {SCALE_DEFINITIONS.map(scale => (
-                <button
-                  key={`scale-select-${scale.id}`}
-                  onClick={() => setSelectedScaleId(scale.id)}
-                  className={`p-2.5 rounded-xl border text-left text-xs transition-all flex flex-col justify-between ${
-                    selectedScaleId === scale.id
-                      ? 'border-primary bg-primary/15 text-primary font-bold shadow-md ring-1 ring-primary/30'
-                      : 'border-border/60 hover:bg-muted text-muted-foreground'
-                  }`}
-                >
-                  <div className="font-bold flex items-center justify-between">
-                    <span className="line-clamp-1">{scale.name}</span>
-                    <Badge variant="secondary" className="text-[9px] px-1 py-0 capitalize opacity-80">
-                      {scale.category.replace('-', ' ')}
-                    </Badge>
-                  </div>
-                  <p className="text-[10px] opacity-75 line-clamp-1 mt-1 font-normal">{scale.description}</p>
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-purple-600 border border-purple-400" />
+            <span className="text-purple-300 font-bold">In-Scale</span>
           </div>
-        </div>
-
-        {/* Scale Notes Formula Badges */}
-        <div className="p-3.5 rounded-xl bg-muted/30 border border-border/40 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-semibold">
-            <Music className="h-4 w-4 text-primary" />
-            <span>Scale Notes Formula ({scaleFormulaNotes.length} notes):</span>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full bg-blue-600 border border-blue-400" />
+            <span className="text-blue-300 font-bold">Off-Scale (Blue)</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {scaleFormulaNotes.map((item, idx) => (
-              <div
-                key={`scale-note-formula-${idx}`}
-                className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 border shadow-sm ${
-                  item.isRoot
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 ring-1 ring-amber-400/30'
-                    : 'bg-primary/10 text-primary border-primary/20'
-                }`}
-              >
-                <span>{item.noteName}</span>
-                <span className="text-[10px] opacity-70">({item.interval})</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* SVG Interactive 24-Fret Guitar Fretboard */}
-      <div className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-bold text-sm flex items-center gap-2">
-            <Layers className="h-4 w-4 text-primary" />
-            24-Fret Full Guitar Neck Diagram
-          </h4>
-          <span className="text-xs text-muted-foreground">Click any note to play or toggle state (Left-click play/add, Right-click toggle)</span>
         </div>
 
         {/* Horizontal Fretboard Canvas Scroll Container (25 Columns for Frets 0 to 24) */}
@@ -304,25 +470,50 @@ export const GuitarNeckScaleStudio: React.FC = () => {
                             )}
 
                             {/* Note Badge for fretboard position */}
-                            {matchingNote && (
-                              <button
-                                onClick={() => handleNeckNoteClick(matchingNote)}
-                                onContextMenu={e => {
-                                  e.preventDefault();
-                                  handleToggleNoteOnNeck(stringNum, fret);
-                                }}
-                                className={`h-7 w-7 rounded-full text-[11px] font-mono font-bold flex items-center justify-center transition-all duration-200 shadow-md ${
-                                  !matchingNote.isEnabled
-                                    ? 'bg-stone-800/80 text-stone-500 border border-stone-700/60 opacity-30 hover:opacity-75 hover:border-amber-400/50'
-                                    : matchingNote.isRoot
-                                    ? 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/40 font-extrabold scale-105 active:scale-95'
-                                    : 'bg-primary/90 hover:bg-primary text-primary-foreground border border-primary/40 active:scale-95'
-                                }`}
-                                title={`String ${stringNum}, Fret ${fret}: ${matchingNote.noteName} (${matchingNote.interval}) — Left click to play, Right click to toggle ON/OFF`}
-                              >
-                                {displayMode === 'noteName' ? matchingNote.noteName : matchingNote.interval}
-                              </button>
-                            )}
+                            {matchingNote && (() => {
+                              const isInScale = matchingNote.isScaleNote !== undefined
+                                ? matchingNote.isScaleNote
+                                : scaleFormulaNotes.some(n => n.noteName === matchingNote.noteName);
+
+                              const isPlayingThisNote =
+                                activePlayingFretKey === `${matchingNote.stringNum}-${matchingNote.fret}`;
+
+                              let colorStyle = '';
+                              if (!matchingNote.isEnabled) {
+                                colorStyle = 'bg-stone-800/80 text-stone-500 border border-stone-700/60 opacity-30 hover:opacity-75 hover:border-amber-400/50';
+                              } else if (matchingNote.isRoot) {
+                                colorStyle = 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/40 font-extrabold scale-105 active:scale-95';
+                              } else if (isInScale) {
+                                colorStyle = 'bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/60 shadow-md shadow-purple-900/40 active:scale-95';
+                              } else {
+                                colorStyle = 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/80 shadow-md shadow-blue-900/40 active:scale-95';
+                              }
+
+                              // Subtle highlight overlay when this exact position is being played
+                              const playingHighlight = isPlayingThisNote
+                                ? 'ring-2 ring-white/70 shadow-lg shadow-white/20 scale-110 z-20'
+                                : '';
+
+                              const badgeText = displayMode === 'noteName'
+                                ? matchingNote.noteName
+                                : displayMode === 'interval'
+                                ? matchingNote.interval
+                                : (matchingNote.fret === 0 ? 'O' : `${((matchingNote.fret - 1) % 4) + 1}`);
+
+                              return (
+                                <button
+                                  onClick={() => handleNeckNoteClick(matchingNote)}
+                                  onContextMenu={e => {
+                                    e.preventDefault();
+                                    handleToggleNoteOnNeck(stringNum, fret);
+                                  }}
+                                  className={`h-7 w-7 rounded-full text-[11px] font-mono font-bold flex items-center justify-center transition-all duration-200 shadow-md ${colorStyle} ${playingHighlight}`}
+                                  title={`String ${stringNum}, Fret ${fret}: ${matchingNote.noteName} (${matchingNote.interval}) — ${isInScale ? 'In Scale' : 'Off Scale Chromatic'}`}
+                                >
+                                  {badgeText}
+                                </button>
+                              );
+                            })()}
                           </div>
                         );
                       })}

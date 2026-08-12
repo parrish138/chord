@@ -17,6 +17,7 @@ export interface FretboardNote {
   freq: number;      // Hz
   interval: string;  // e.g. "1", "b3", "5"
   isRoot: boolean;
+  isScaleNote?: boolean;
   isEnabled: boolean;
 }
 

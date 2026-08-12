@@ -11,9 +11,30 @@ export interface TabRendererProps {
 
 const TAB_STRING_LABELS = ['e', 'B', 'G', 'D', 'A', 'E']; // String 1 to String 6
 
-// Calculate MIDI note number from string (1-6) and fret (0-24)
-function getMidiNote(stringNum: number, fret: number): number {
-  // Base MIDI pitches for open strings E2, A2, D3, G3, B3, E4
+export interface NoteDetails {
+  pitchClass: string;
+  octave: number;
+  noteNameWithOctave: string;
+  isSharp: boolean;
+  totalDiatonicStep: number;
+}
+
+const DIATONIC_STEP_MAP: Record<number, { name: string; step: number; isSharp: boolean }> = {
+  0:  { name: 'C',  step: 0, isSharp: false },
+  1:  { name: 'C#', step: 0, isSharp: true },
+  2:  { name: 'D',  step: 1, isSharp: false },
+  3:  { name: 'D#', step: 1, isSharp: true },
+  4:  { name: 'E',  step: 2, isSharp: false },
+  5:  { name: 'F',  step: 3, isSharp: false },
+  6:  { name: 'F#', step: 3, isSharp: true },
+  7:  { name: 'G',  step: 4, isSharp: false },
+  8:  { name: 'G#', step: 4, isSharp: true },
+  9:  { name: 'A',  step: 5, isSharp: false },
+  10: { name: 'A#', step: 5, isSharp: true },
+  11: { name: 'B',  step: 6, isSharp: false },
+};
+
+export function getMidiNote(stringNum: number, fret: number): number {
   const openMidi: Record<number, number> = {
     6: 40, // E2
     5: 45, // A2
@@ -25,35 +46,47 @@ function getMidiNote(stringNum: number, fret: number): number {
   return (openMidi[stringNum] || 40) + fret;
 }
 
-// Convert MIDI pitch to vertical Y position on the 5-line Treble Staff
-// Treble clef bottom line E4 = MIDI 64
-function midiToStaffY(midi: number, staffCenterY: number, lineSpacing: number): { y: number; hasLedger: boolean; ledgerY?: number[] } {
-  // Distance in diatonic steps from E4 (MIDI 64)
-  // Simple pitch offset approximation
-  const semitonesFromE4 = midi - 64;
-  
-  // Approximate diatonic step offset (2 semitones ~= 1 staff step)
-  const diatonicOffset = Math.round(semitonesFromE4 / 1.75);
-  
-  // Each diatonic step is half a line spacing (between lines/spaces)
-  const y = staffCenterY - (diatonicOffset * (lineSpacing / 2));
-  
-  const ledgers: number[] = [];
-  // Add ledger lines if above/below 5-line staff limits
-  const staffTopY = staffCenterY - 2 * lineSpacing;
-  const staffBottomY = staffCenterY + 2 * lineSpacing;
+export function getNoteDetailsFromMidi(midi: number): NoteDetails {
+  const pitchClass = ((midi % 12) + 12) % 12;
+  const octave = Math.floor(midi / 12) - 1;
+  const info = DIATONIC_STEP_MAP[pitchClass];
+  const totalDiatonicStep = (octave - 4) * 7 + info.step;
+  return {
+    pitchClass: info.name,
+    octave,
+    noteNameWithOctave: `${info.name}${octave}`,
+    isSharp: info.isSharp,
+    totalDiatonicStep,
+  };
+}
 
-  if (y > staffBottomY + 4) {
-    for (let ly = staffBottomY + lineSpacing; ly <= y + 2; ly += lineSpacing) {
-      ledgers.push(ly);
+export function midiToStaffY(midi: number, notationTop: number, lineSpacing: number): {
+  y: number;
+  noteDetails: NoteDetails;
+  ledgerY: number[];
+} {
+  const noteDetails = getNoteDetailsFromMidi(midi);
+  const bottomLineY = notationTop + 4 * lineSpacing; // E4 (bottom staff line) = diatonic step 2
+  const y = bottomLineY - (noteDetails.totalDiatonicStep - 2) * (lineSpacing / 2);
+
+  const ledgerY: number[] = [];
+
+  // Above staff: top line F5 is diatonic step 10 (y = notationTop)
+  if (noteDetails.totalDiatonicStep >= 12) {
+    for (let step = 12; step <= noteDetails.totalDiatonicStep; step += 2) {
+      const ly = bottomLineY - (step - 2) * (lineSpacing / 2);
+      ledgerY.push(ly);
     }
-  } else if (y < staffTopY - 4) {
-    for (let ly = staffTopY - lineSpacing; ly >= y - 2; ly -= lineSpacing) {
-      ledgers.push(ly);
+  }
+  // Below staff: bottom line E4 is diatonic step 2 (y = bottomLineY)
+  else if (noteDetails.totalDiatonicStep <= 0) {
+    for (let step = 0; step >= noteDetails.totalDiatonicStep; step -= 2) {
+      const ly = bottomLineY - (step - 2) * (lineSpacing / 2);
+      ledgerY.push(ly);
     }
   }
 
-  return { y, hasLedger: ledgers.length > 0, ledgerY: ledgers };
+  return { y, noteDetails, ledgerY };
 }
 
 export const TabRenderer: React.FC<TabRendererProps> = ({
@@ -69,13 +102,13 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
   const paddingLeft = 65;
 
   // Vertical offsets for dual-system layout
-  const notationTop = 50; // Standard Musical Notation Staff Top
+  const notationTop = 65; // Standard Musical Notation Staff Top (room for high ledger lines up to fret 24)
   const staffCenterY = notationTop + 2 * lineSpacing;
   
-  const tabTop = notationTop + 5 * lineSpacing + 45; // TAB Staff Top directly below notation
+  const tabTop = notationTop + 5 * lineSpacing + 55; // TAB Staff Top directly below notation
 
   const totalWidth = Math.max(760, paddingLeft + track.columns.length * colWidth + 40);
-  const totalHeight = tabTop + (numStrings - 1) * lineSpacing + 50;
+  const totalHeight = tabTop + (numStrings - 1) * lineSpacing + 60;
 
   return (
     <div className={cn("overflow-x-auto rounded-2xl p-5 glass-panel border border-border/40 space-y-2", className)}>
@@ -101,7 +134,7 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
         {/* ========================================================== */}
         <g id="musical-notation-staff">
           {/* Treble Clef Header Label */}
-          <text x="12" y={notationTop - 12} fill="#A855F7" fontSize="11" fontWeight="bold">
+          <text x="12" y={notationTop - 14} fill="#A855F7" fontSize="11" fontWeight="bold">
             STANDARD NOTATION
           </text>
           
@@ -201,7 +234,7 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
               {isMeasureBar && (
                 <line
                   x1={x - colWidth / 2}
-                  y1={notationTop}
+                  y1={notationTop - 25}
                   x2={x - colWidth / 2}
                   y2={tabTop + (numStrings - 1) * lineSpacing}
                   stroke="#A855F7"
@@ -214,11 +247,11 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
               {isActive && (
                 <rect
                   x={x - colWidth / 2 + 2}
-                  y={notationTop - 8}
+                  y={notationTop - 30}
                   width={colWidth - 4}
-                  height={tabTop + (numStrings - 1) * lineSpacing - notationTop + 16}
+                  height={tabTop + (numStrings - 1) * lineSpacing - notationTop + 38}
                   fill="#A855F7"
-                  opacity="0.2"
+                  opacity="0.18"
                   rx="6"
                 />
               )}
@@ -227,9 +260,9 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
               {col.chordLabel && (
                 <text
                   x={x}
-                  y={notationTop - 20}
+                  y={notationTop - 24}
                   textAnchor="middle"
-                  fill="#F472B6"
+                  fill={isActive ? "#FDE047" : "#F472B6"}
                   fontSize="11"
                   fontWeight="black"
                 >
@@ -237,10 +270,14 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
                 </text>
               )}
 
-              {/* A. NOTATION STAFF NOTEHEADS & LEDGER LINES */}
+              {/* A. NOTATION STAFF NOTEHEADS, ACCIDENTALS, LEDGER LINES & PITCH HINTS */}
               {col.notes.map(noteObj => {
                 const midi = getMidiNote(noteObj.stringNum, noteObj.fret);
-                const { y: noteY, ledgerY } = midiToStaffY(midi, staffCenterY, lineSpacing);
+                const { y: noteY, noteDetails, ledgerY } = midiToStaffY(midi, notationTop, lineSpacing);
+
+                const isStemUp = noteDetails.totalDiatonicStep < 6;
+                const stemX = isStemUp ? x + 5 : x - 5;
+                const stemY2 = isStemUp ? noteY - 24 : noteY + 24;
 
                 return (
                   <g key={`notehead-${colIdx}-${noteObj.stringNum}`}>
@@ -248,14 +285,28 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
                     {ledgerY && ledgerY.map((ly, lIdx) => (
                       <line
                         key={`ledger-${lIdx}`}
-                        x1={x - 10}
+                        x1={x - 11}
                         y1={ly}
-                        x2={x + 10}
+                        x2={x + 11}
                         y2={ly}
-                        stroke="#94A3B8"
-                        strokeWidth="1.2"
+                        stroke={isActive ? '#E9D5FF' : '#94A3B8'}
+                        strokeWidth="1.4"
                       />
                     ))}
+
+                    {/* Sharp Accidental Sign ♯ */}
+                    {noteDetails.isSharp && (
+                      <text
+                        x={x - 13}
+                        y={noteY + 3.5}
+                        fill="#F472B6"
+                        fontSize="12"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                      >
+                        ♯
+                      </text>
+                    )}
 
                     {/* Notehead (Filled Oval) */}
                     <ellipse
@@ -263,19 +314,35 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
                       cy={noteY}
                       rx="5.5"
                       ry="4"
-                      fill="#A855F7"
+                      fill={isActive ? '#C084FC' : '#A855F7'}
+                      stroke={isActive ? '#F0ABFC' : undefined}
+                      strokeWidth={isActive ? '1' : '0'}
                       transform={`rotate(-20 ${x} ${noteY})`}
                     />
 
                     {/* Note Stem Line */}
                     <line
-                      x1={x + 4.5}
+                      x1={stemX}
                       y1={noteY}
-                      x2={x + 4.5}
-                      y2={noteY - 24}
-                      stroke="#C084FC"
+                      x2={stemX}
+                      y2={stemY2}
+                      stroke={isActive ? '#F0ABFC' : '#C084FC'}
                       strokeWidth="1.5"
                     />
+
+                    {/* Floating Pitch Hint Tag (e.g. "C4", "F#5") */}
+                    <text
+                      x={x}
+                      y={noteY + (isStemUp ? 13 : -13)}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill={isActive ? '#FDE047' : '#94A3B8'}
+                      fontSize="9"
+                      fontWeight="bold"
+                      className="pointer-events-none opacity-90"
+                    >
+                      {noteDetails.noteNameWithOctave}
+                    </text>
                   </g>
                 );
               })}
@@ -305,12 +372,12 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
                     {fretVal !== null && (
                       <g>
                         <rect
-                          x={x - 9}
+                          x={x - 10}
                           y={tabY - 9}
-                          width="18"
+                          width="20"
                           height="18"
                           fill="#0F172A"
-                          stroke="#EC4899"
+                          stroke={isActive ? '#F472B6' : '#EC4899'}
                           strokeWidth="1.5"
                           rx="4"
                         />
@@ -320,7 +387,7 @@ export const TabRenderer: React.FC<TabRendererProps> = ({
                           textAnchor="middle"
                           dominantBaseline="central"
                           fill="#F8FAFC"
-                          fontSize="11"
+                          fontSize="10"
                           fontWeight="bold"
                         >
                           {fretVal}
