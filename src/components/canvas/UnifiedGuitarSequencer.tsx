@@ -41,49 +41,75 @@ export const UnifiedGuitarSequencer: React.FC<UnifiedGuitarSequencerProps> = ({ 
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Play Sequence Loop
+  // Reactive Playback Loop: Dynamically updates step interval whenever BPM, sequence, or looping changes
+  useEffect(() => {
+    if (!isPlaying) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    if (sequence.length === 0) {
+      setIsPlaying(false);
+      setActiveStepIndex(-1);
+      return;
+    }
+
+    const stepIntervalMs = Math.max(100, Math.round((60 / bpm) * 1000));
+    let stepIdx = activeStepIndex >= 0 ? activeStepIndex : 0;
+
+    const playStep = () => {
+      if (stepIdx >= sequence.length) {
+        if (!isLooping) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          timerRef.current = null;
+          setIsPlaying(false);
+          setActiveStepIndex(-1);
+          return;
+        }
+        stepIdx = 0;
+      }
+
+      setActiveStepIndex(stepIdx);
+      const currentStep = sequence[stepIdx];
+
+      if (currentStep) {
+        if (currentStep.type === 'chord' && currentStep.chord) {
+          strumChord(currentStep.chord, 'down', 35, getGuitarPreset());
+        } else if (currentStep.type === 'note' && currentStep.freq) {
+          playPluckedNote(currentStep.freq, 0, 2.4, 0.45, currentStep.stringNum || 3, getGuitarPreset());
+        }
+      }
+
+      stepIdx++;
+    };
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    // Run step immediately and set interval
+    playStep();
+    timerRef.current = setInterval(playStep, stepIntervalMs);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [isPlaying, bpm, isLooping, sequence]);
+
   const togglePlaySequence = () => {
     if (isPlaying) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
       setIsPlaying(false);
       setActiveStepIndex(-1);
     } else {
       if (sequence.length === 0) return;
-      setIsPlaying(true);
-      let stepIdx = 0;
       setActiveStepIndex(0);
-
-      const stepIntervalMs = (60 / bpm) * 1000;
-
-      const playStep = () => {
-        if (stepIdx >= sequence.length) {
-          if (!isLooping) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            timerRef.current = null;
-            setIsPlaying(false);
-            setActiveStepIndex(-1);
-            return;
-          }
-          stepIdx = 0;
-        }
-
-        setActiveStepIndex(stepIdx);
-        const currentStep = sequence[stepIdx];
-
-        if (currentStep) {
-          if (currentStep.type === 'chord' && currentStep.chord) {
-            strumChord(currentStep.chord, 'down', 35, getGuitarPreset());
-          } else if (currentStep.type === 'note' && currentStep.freq) {
-            playPluckedNote(currentStep.freq, 0, 2.4, 0.45, currentStep.stringNum || 3, getGuitarPreset());
-          }
-        }
-
-        stepIdx++;
-      };
-
-      playStep();
-      timerRef.current = setInterval(playStep, stepIntervalMs);
+      setIsPlaying(true);
     }
   };
 

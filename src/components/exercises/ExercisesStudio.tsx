@@ -571,8 +571,10 @@ export const ExercisesStudio: React.FC = () => {
   // Playback engine
   useEffect(() => {
     if (isPlaying) {
-      playbackRef.current = -1;
-      const stepMs = Math.round((60000 / bpm) / 2); // 8th notes
+      if (playbackRef.current < 0) {
+        playbackRef.current = -1;
+      }
+      const stepMs = Math.max(50, Math.round((60000 / bpm) / 2)); // 8th notes
 
       const tick = () => {
         playbackRef.current += 1;

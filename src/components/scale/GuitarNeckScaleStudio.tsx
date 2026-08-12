@@ -525,7 +525,7 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
               );
             })}
             {showOffScaleNotes && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-950/70 border border-dashed border-sky-400 text-[11px] font-mono text-sky-300 font-bold shadow-sm">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-950/70 border border-dashed border-sky-400/90 text-[11px] font-mono text-sky-300 font-bold shadow-sm">
                 <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
                 <span>Off-Scale Notes (Dashed Border ╌)</span>
               </div>
@@ -619,17 +619,17 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                               if (!matchingNote.isEnabled || !isRoleActive) {
                                 colorStyle = 'bg-stone-900/70 text-stone-600 border border-stone-800/80 opacity-20 hover:opacity-75 scale-90';
                               } else if (!isInScale) {
-                                // Off-Scale Note Styling: Desaturated role tint with a dashed sky-blue border
+                                // Off-Scale Note Styling: Desaturated role tint with fine small dashed sky-blue border
                                 if (matchingNote.isRoot) {
-                                  colorStyle = 'bg-amber-950/80 text-amber-300 border-2 border-dashed border-sky-400 opacity-90 scale-95 shadow-md font-bold';
+                                  colorStyle = 'bg-amber-950/80 text-amber-300 border border-dashed border-sky-400/90 opacity-90 scale-95 shadow-md font-bold';
                                 } else if (role === 'characteristic') {
-                                  colorStyle = 'bg-purple-950/80 text-purple-300 border-2 border-dashed border-sky-400 opacity-85 scale-95 shadow-md font-bold';
+                                  colorStyle = 'bg-purple-950/80 text-purple-300 border border-dashed border-sky-400/90 opacity-85 scale-95 shadow-md font-bold';
                                 } else if (role === 'chord-tone') {
-                                  colorStyle = 'bg-emerald-950/80 text-emerald-300 border-2 border-dashed border-sky-400 opacity-85 scale-95 shadow-md font-bold';
+                                  colorStyle = 'bg-emerald-950/80 text-emerald-300 border border-dashed border-sky-400/90 opacity-85 scale-95 shadow-md font-bold';
                                 } else if (role === 'tension' || isTensionInterval) {
-                                  colorStyle = 'bg-rose-950/80 text-rose-300 border-2 border-dashed border-sky-400 opacity-85 scale-95 shadow-md font-bold';
+                                  colorStyle = 'bg-rose-950/80 text-rose-300 border border-dashed border-sky-400/90 opacity-85 scale-95 shadow-md font-bold';
                                 } else {
-                                  colorStyle = 'bg-slate-900/90 text-sky-300 border-2 border-dashed border-sky-400 opacity-80 scale-90 shadow-md font-bold';
+                                  colorStyle = 'bg-slate-900/90 text-sky-300 border border-dashed border-sky-400/90 opacity-80 scale-90 shadow-md font-bold';
                                 }
                               } else if (matchingNote.isRoot) {
                                 colorStyle = 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/40 font-extrabold scale-105 active:scale-95 z-10';
