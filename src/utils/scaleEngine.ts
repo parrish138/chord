@@ -1,4 +1,4 @@
-import { ScaleDefinition, FretboardNote } from '../types/scale';
+import { ScaleDefinition, FretboardNote, NoteRole } from '../types/scale';
 import { getFrequencyForStringAndFret } from './audioSynth';
 
 export const NOTES_CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -36,6 +36,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 4, 5, 7, 9, 11],
     intervalNames: ['1', '2', '3', '4', '5', '6', '7'],
     description: 'The foundation of Western music harmony (W-W-H-W-W-W-H).',
+    tonicChordQuality: 'maj7',
+    chordTones: ['1', '3', '5', '7'],
+    characteristicTones: ['4'],
+    colourTones: ['2', '6'],
+    modalComparison: { referenceMode: 'Lydian', diffLabel: 'Natural 4th (4) instead of ♯4' },
   },
   {
     id: 'dorian',
@@ -44,6 +49,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 3, 5, 7, 9, 10],
     intervalNames: ['1', '2', 'b3', '4', '5', '6', 'b7'],
     description: 'Minor mode with a bright natural 6th. Popular in Jazz and Funk.',
+    tonicChordQuality: 'm7',
+    chordTones: ['1', 'b3', '5', 'b7'],
+    characteristicTones: ['6'],
+    colourTones: ['2', '4'],
+    modalComparison: { referenceMode: 'Aeolian', diffLabel: 'Natural 6th (6) instead of ♭6' },
   },
   {
     id: 'phrygian',
@@ -52,6 +62,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 1, 3, 5, 7, 8, 10],
     intervalNames: ['1', 'b2', 'b3', '4', '5', 'b6', 'b7'],
     description: 'Dark, tense minor mode with a flat 2nd. Common in Flamenco & Metal.',
+    tonicChordQuality: 'm7',
+    chordTones: ['1', 'b3', '5', 'b7'],
+    characteristicTones: ['b2'],
+    colourTones: ['4', 'b6'],
+    modalComparison: { referenceMode: 'Aeolian', diffLabel: 'Flat 2nd (♭2) instead of 2' },
   },
   {
     id: 'lydian',
@@ -60,6 +75,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 4, 6, 7, 9, 11],
     intervalNames: ['1', '2', '3', '#4', '5', '6', '7'],
     description: 'Dreamy major mode with a raised 4th. Used in film scores.',
+    tonicChordQuality: 'maj7',
+    chordTones: ['1', '3', '5', '7'],
+    characteristicTones: ['#4'],
+    colourTones: ['2', '6'],
+    modalComparison: { referenceMode: 'Ionian', diffLabel: 'Raised 4th (♯4) instead of 4' },
   },
   {
     id: 'mixolydian',
@@ -68,6 +88,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 4, 5, 7, 9, 10],
     intervalNames: ['1', '2', '3', '4', '5', '6', 'b7'],
     description: 'Bluesy major mode with a flat 7th. Key scale for Classic Rock & Blues.',
+    tonicChordQuality: '7',
+    chordTones: ['1', '3', '5', 'b7'],
+    characteristicTones: ['b7'],
+    colourTones: ['2', '4', '6'],
+    modalComparison: { referenceMode: 'Ionian', diffLabel: 'Flat 7th (♭7) instead of 7' },
   },
   {
     id: 'natural-minor',
@@ -76,6 +101,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 3, 5, 7, 8, 10],
     intervalNames: ['1', '2', 'b3', '4', '5', 'b6', 'b7'],
     description: 'Pure minor tonality (W-H-W-W-H-W-W). Introspective & emotional.',
+    tonicChordQuality: 'm7',
+    chordTones: ['1', 'b3', '5', 'b7'],
+    characteristicTones: ['b6'],
+    colourTones: ['2', '4'],
+    modalComparison: { referenceMode: 'Dorian', diffLabel: 'Flat 6th (♭6) instead of 6' },
   },
   {
     id: 'locrian',
@@ -84,6 +114,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 1, 3, 5, 6, 8, 10],
     intervalNames: ['1', 'b2', 'b3', '4', 'b5', 'b6', 'b7'],
     description: 'Diminished mode with flat 2nd and flat 5th. Unstable & dissonant.',
+    tonicChordQuality: 'm7b5',
+    chordTones: ['1', 'b3', 'b5', 'b7'],
+    characteristicTones: ['b5', 'b2'],
+    colourTones: ['4', 'b6'],
+    modalComparison: { referenceMode: 'Aeolian', diffLabel: 'Flat 5th (♭5) and Flat 2nd (♭2)' },
   },
 
   // --- Non-Diatonic & Harmonic Minor Modes (Musical Slide Rule) ---
@@ -94,6 +129,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 3, 5, 7, 8, 11],
     intervalNames: ['1', '2', 'b3', '4', '5', 'b6', '7'],
     description: '1st mode of Harmonic Minor. Minor scale with a raised 7th leading tone.',
+    tonicChordQuality: 'Mmaj7',
+    chordTones: ['1', 'b3', '5', '7'],
+    characteristicTones: ['7'],
+    colourTones: ['2', '4'],
+    modalComparison: { referenceMode: 'Aeolian', diffLabel: 'Raised 7th (7) leading tone' },
   },
   {
     id: 'locrian-sharp-6',
@@ -102,6 +142,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 1, 3, 5, 6, 9, 10],
     intervalNames: ['1', 'b2', 'b3', '4', 'b5', '6', 'b7'],
     description: '2nd mode of Harmonic Minor. Diminished 5th with a natural 6th.',
+    tonicChordQuality: 'm7b5',
+    chordTones: ['1', 'b3', 'b5', 'b7'],
+    characteristicTones: ['6'],
+    colourTones: ['4'],
+    modalComparison: { referenceMode: 'Locrian', diffLabel: 'Natural 6th (6) instead of ♭6' },
   },
   {
     id: 'ionian-sharp-5',
@@ -110,6 +155,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 4, 5, 8, 9, 11],
     intervalNames: ['1', '2', '3', '4', '#5', '6', '7'],
     description: '3rd mode of Harmonic Minor. Major 3rd with an augmented 5th.',
+    tonicChordQuality: 'maj7#5',
+    chordTones: ['1', '3', '#5', '7'],
+    characteristicTones: ['#5'],
+    colourTones: ['2', '6'],
+    modalComparison: { referenceMode: 'Ionian', diffLabel: 'Augmented 5th (♯5) instead of 5' },
   },
   {
     id: 'dorian-sharp-4',
@@ -118,6 +168,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 3, 6, 7, 9, 10],
     intervalNames: ['1', '2', 'b3', '#4', '5', '6', 'b7'],
     description: '4th mode of Harmonic Minor. Dorian minor with a tritone #4. Folk & Eastern.',
+    tonicChordQuality: 'm7',
+    chordTones: ['1', 'b3', '5', 'b7'],
+    characteristicTones: ['#4'],
+    colourTones: ['2', '6'],
+    modalComparison: { referenceMode: 'Dorian', diffLabel: 'Raised 4th (♯4) instead of 4' },
   },
   {
     id: 'phrygian-dominant',
@@ -126,6 +181,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 1, 4, 5, 7, 8, 10],
     intervalNames: ['1', 'b2', '3', '4', '5', 'b6', 'b7'],
     description: '5th mode of Harmonic Minor. Major 3rd with flat 2nd and flat 6th.',
+    tonicChordQuality: '7',
+    chordTones: ['1', '3', '5', 'b7'],
+    characteristicTones: ['b2', '3'],
+    colourTones: ['4', 'b6'],
+    modalComparison: { referenceMode: 'Phrygian', diffLabel: 'Major 3rd (3) instead of ♭3' },
   },
   {
     id: 'lydian-sharp-2',
@@ -134,6 +194,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 3, 4, 6, 7, 9, 11],
     intervalNames: ['1', '#2', '3', '#4', '5', '6', '7'],
     description: '6th mode of Harmonic Minor. Lydian major with a raised #2 step.',
+    tonicChordQuality: 'maj7',
+    chordTones: ['1', '3', '5', '7'],
+    characteristicTones: ['#2', '#4'],
+    colourTones: ['6'],
+    modalComparison: { referenceMode: 'Lydian', diffLabel: 'Raised 2nd (♯2) step' },
   },
   {
     id: 'ultralocrian',
@@ -142,6 +207,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 1, 3, 4, 6, 8, 9],
     intervalNames: ['1', 'b2', 'b3', 'b4', 'b5', 'b6', 'bb7'],
     description: '7th mode of Harmonic Minor. Fully diminished 7th mode.',
+    tonicChordQuality: 'dim7',
+    chordTones: ['1', 'b3', 'b5', 'bb7'],
+    characteristicTones: ['bb7'],
+    colourTones: ['b2', 'b4', 'b6'],
+    modalComparison: { referenceMode: 'Locrian', diffLabel: 'Diminished 7th (bb7) instead of ♭7' },
   },
   {
     id: 'melodic-minor',
@@ -150,6 +220,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 3, 5, 7, 9, 11],
     intervalNames: ['1', '2', 'b3', '4', '5', '6', '7'],
     description: 'Minor 3rd with major 6th and 7th. Essential for Modern Jazz.',
+    tonicChordQuality: 'Mmaj7',
+    chordTones: ['1', 'b3', '5', '7'],
+    characteristicTones: ['6', '7'],
+    colourTones: ['2', '4'],
+    modalComparison: { referenceMode: 'Natural Minor', diffLabel: 'Natural 6th and Major 7th' },
   },
   {
     id: 'hungarian-minor',
@@ -158,6 +233,11 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 3, 6, 7, 8, 11],
     intervalNames: ['1', '2', 'b3', '#4', '5', 'b6', '7'],
     description: 'Harmonic Minor with a raised 4th. Dramatic Eastern European sound.',
+    tonicChordQuality: 'Mmaj7',
+    chordTones: ['1', 'b3', '5', '7'],
+    characteristicTones: ['#4', '7'],
+    colourTones: ['2', 'b6'],
+    modalComparison: { referenceMode: 'Harmonic Minor', diffLabel: 'Raised 4th (♯4) tritone' },
   },
 
   // --- Pentatonic & Blues Scales ---
@@ -168,6 +248,9 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 4, 7, 9],
     intervalNames: ['1', '2', '3', '5', '6'],
     description: '5-note major scale omitting 4th and 7th. Bright, melodic Americana.',
+    tonicChordQuality: 'maj',
+    chordTones: ['1', '3', '5'],
+    colourTones: ['2', '6'],
   },
   {
     id: 'minor-pentatonic',
@@ -176,6 +259,9 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 3, 5, 7, 10],
     intervalNames: ['1', 'b3', '4', '5', 'b7'],
     description: 'The premier 5-note lead guitar scale for Rock, Blues, and Soloing.',
+    tonicChordQuality: 'm7',
+    chordTones: ['1', 'b3', '5', 'b7'],
+    colourTones: ['4'],
   },
   {
     id: 'blues-scale',
@@ -259,7 +345,30 @@ export function getScaleNotes(rootNote: string, scaleId: string): { noteName: st
 }
 
 /**
- * Maps scale notes across the entire 6-string 22-fret guitar fretboard
+ * Categorizes a note in context into its theoretical role
+ */
+export function getNoteRoleInContext(scaleId: string, interval: string): NoteRole {
+  if (interval === '1') return 'root';
+  const scale = SCALE_DEFINITIONS.find(s => s.id === scaleId);
+  if (!scale) return 'colour';
+
+  if (scale.characteristicTones && scale.characteristicTones.includes(interval)) {
+    return 'characteristic';
+  }
+  if (scale.chordTones && scale.chordTones.includes(interval)) {
+    return 'chord-tone';
+  }
+  if (scale.colourTones && scale.colourTones.includes(interval)) {
+    return 'colour';
+  }
+  if (['4', 'b2', 'b5', '#4', '7'].includes(interval)) {
+    return 'tension';
+  }
+  return 'colour';
+}
+
+/**
+ * Maps scale notes across the entire 6-string 24-fret guitar fretboard
  */
 export function generateFretboardScale(
   rootNote: string,
@@ -283,6 +392,7 @@ export function generateFretboardScale(
 
       const interval = matchingScaleItem ? matchingScaleItem.interval : (INTERVAL_LABELS_MAP[noteSemis] || '1');
       const isRoot = noteSemis === 0;
+      const noteRole = getNoteRoleInContext(scaleId, interval);
 
       if (isMatch || includeOffScaleNotes) {
         fretboardNotes.push({
@@ -295,6 +405,7 @@ export function generateFretboardScale(
           isRoot,
           isScaleNote: isMatch,
           isEnabled: isMatch || scaleId === 'all-notes',
+          noteRole,
         });
       }
     }

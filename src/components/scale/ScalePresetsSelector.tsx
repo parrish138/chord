@@ -290,7 +290,23 @@ export const ScalePresetsSelector: React.FC<ScalePresetsSelectorProps> = ({
                       <span className="font-bold text-slate-200">{chord7Notes}</span>
                     </div>
                   )}
+                  {activeScaleDef.characteristicTones && activeScaleDef.characteristicTones.length > 0 && (
+                    <div className="flex items-center justify-between text-[11px] pt-1">
+                      <span className="font-bold text-purple-400">Characteristic Note:</span>
+                      <span className="font-extrabold text-purple-300 bg-purple-500/15 px-1.5 py-0.5 rounded border border-purple-500/30">
+                        {activeScaleDef.characteristicTones.join(', ')} ({activeScaleNotes.find(n => activeScaleDef.characteristicTones?.includes(n.interval))?.noteName || ''})
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Modal Comparison Reference */}
+                {activeScaleDef.modalComparison && (
+                  <div className="p-2 rounded bg-purple-950/40 border border-purple-800/40 text-[10px] space-y-0.5 font-mono">
+                    <span className="font-bold text-purple-300 uppercase tracking-wider block">Modal Comparison ({activeScaleDef.modalComparison.referenceMode}):</span>
+                    <span className="text-purple-200 font-semibold">{activeScaleDef.modalComparison.diffLabel}</span>
+                  </div>
+                )}
 
                 {/* Description */}
                 <p className="text-[11px] text-muted-foreground leading-relaxed pt-1.5 border-t border-slate-800/60 font-normal">

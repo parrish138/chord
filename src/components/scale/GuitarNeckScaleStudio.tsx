@@ -6,7 +6,7 @@ import { useGlobalBpm } from '../../utils/globalBpmManager';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
-import { Play, Pause, Sparkles, Plus, Trash2, Music, Eye, Layers, Globe, CheckCircle2, RotateCcw, ArrowUp, ArrowDown, Repeat, Shuffle, Volume2 } from 'lucide-react';
+import { Play, Pause, Sparkles, Plus, Trash2, Music, Eye, Layers, Globe, CheckCircle2, RotateCcw, ArrowUp, ArrowDown, Repeat, Shuffle, Volume2, Sliders } from 'lucide-react';
 
 export interface SlideRuleChordDef {
   id: string;
@@ -95,6 +95,20 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
   const [activeStepIndex, setActiveStepIndex] = useState<number>(-1);
   const [activePlayingFretKey, setActivePlayingFretKey] = useState<string | null>(null);
   const [bpm, setBpm] = useGlobalBpm();
+
+  // Note Role Layer Filters
+  const [activeRoleFilters, setActiveRoleFilters] = useState<Set<import('../../types/scale').NoteRole>>(
+    new Set(['root', 'chord-tone', 'characteristic', 'colour', 'tension'])
+  );
+
+  const toggleRoleFilter = (role: import('../../types/scale').NoteRole) => {
+    setActiveRoleFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(role)) next.delete(role);
+      else next.add(role);
+      return next;
+    });
+  };
 
   // Slide Rule State
   const [slideRuleTab, setSlideRuleTab] = useState<'diatonic' | 'harmonic' | 'chords'>('diatonic');
@@ -479,20 +493,37 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
           </div>
         </div>
 
-        {/* Color Legend for Neck Notes */}
-        <div className="flex flex-wrap items-center gap-4 text-xs font-mono bg-muted/20 px-3 py-1.5 rounded-lg border border-border/30">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Note Key:</span>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 ring-1 ring-amber-300" />
-            <span className="text-amber-300 font-bold">Root</span>
+        {/* Note Function Layer Filter Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/70 p-3 rounded-xl border border-border/40 text-xs shadow-inner">
+          <div className="flex items-center gap-2">
+            <Sliders className="h-4 w-4 text-amber-400" />
+            <span className="font-bold text-foreground">Note Function Layer Filters:</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-purple-600 border border-purple-400" />
-            <span className="text-purple-300 font-bold">In-Scale</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-blue-600 border border-blue-400" />
-            <span className="text-blue-300 font-bold">Off-Scale (Blue)</span>
+
+          <div className="flex flex-wrap items-center gap-1.5 font-mono">
+            {[
+              { id: 'root' as import('../../types/scale').NoteRole, label: 'Root (1)', color: 'bg-amber-500 text-slate-950 font-bold' },
+              { id: 'characteristic' as import('../../types/scale').NoteRole, label: 'Characteristic (Mode Accent)', color: 'bg-purple-600 text-white font-bold' },
+              { id: 'chord-tone' as import('../../types/scale').NoteRole, label: 'Chord Tones (1-3-5-7)', color: 'bg-emerald-600 text-white font-bold' },
+              { id: 'colour' as import('../../types/scale').NoteRole, label: 'Colour Extensions (2-4-6)', color: 'bg-sky-600 text-white font-bold' },
+              { id: 'tension' as import('../../types/scale').NoteRole, label: 'Tensions (4, ♭2, ♭5, ♯4)', color: 'bg-rose-600 text-white font-bold' },
+            ].map(f => {
+              const active = activeRoleFilters.has(f.id);
+              return (
+                <button
+                  key={`role-filter-${f.id}`}
+                  onClick={() => toggleRoleFilter(f.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                    active
+                      ? `${f.color} shadow-sm border-transparent`
+                      : 'bg-stone-900/80 text-stone-500 border-stone-800 opacity-40 line-through'
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${active ? 'bg-white' : 'bg-stone-600'}`} />
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -556,13 +587,22 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                               const isPlayingThisNote =
                                 activePlayingFretKey === `${matchingNote.stringNum}-${matchingNote.fret}`;
 
+                              const role = matchingNote.noteRole || 'colour';
+                              const isRoleActive = activeRoleFilters.has(role);
+
                               let colorStyle = '';
-                              if (!matchingNote.isEnabled) {
-                                colorStyle = 'bg-stone-800/80 text-stone-500 border border-stone-700/60 opacity-30 hover:opacity-75 hover:border-amber-400/50';
+                              if (!matchingNote.isEnabled || !isRoleActive) {
+                                colorStyle = 'bg-stone-900/70 text-stone-600 border border-stone-800/80 opacity-20 hover:opacity-75 scale-90';
                               } else if (matchingNote.isRoot) {
-                                colorStyle = 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/40 font-extrabold scale-105 active:scale-95';
+                                colorStyle = 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/40 font-extrabold scale-105 active:scale-95 z-10';
+                              } else if (role === 'characteristic') {
+                                colorStyle = 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white ring-2 ring-purple-300/80 shadow-lg shadow-purple-500/30 font-extrabold scale-105 active:scale-95 z-10';
+                              } else if (role === 'chord-tone') {
+                                colorStyle = 'bg-gradient-to-tr from-emerald-600 to-green-500 text-white border border-emerald-400/80 shadow-md shadow-emerald-900/40 active:scale-95';
+                              } else if (role === 'tension') {
+                                colorStyle = 'bg-gradient-to-tr from-rose-600 to-pink-500 text-white border border-rose-400/80 shadow-md shadow-rose-900/40 active:scale-95';
                               } else if (isInScale) {
-                                colorStyle = 'bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/60 shadow-md shadow-purple-900/40 active:scale-95';
+                                colorStyle = 'bg-gradient-to-tr from-sky-600 to-blue-500 text-white border border-sky-400/60 shadow-md shadow-sky-900/40 active:scale-95';
                               } else {
                                 colorStyle = 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/80 shadow-md shadow-blue-900/40 active:scale-95';
                               }

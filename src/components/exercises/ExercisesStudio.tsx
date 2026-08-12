@@ -264,10 +264,249 @@ function generateStrumExercise(
 }
 
 // ──────────────────────────────────────────────────────────────
+// Exercise 3: Modal Characteristic & Modal Shift Generator
+// ──────────────────────────────────────────────────────────────
+export type ModalShiftPair = 'dorian-aeolian' | 'lydian-ionian' | 'phrygian-aeolian' | 'mixolydian-ionian';
+
+export interface ModalShiftDef {
+  id: ModalShiftPair;
+  name: string;
+  tonicChord: string;
+  modeNotes: { noteName: string; interval: string; stringNum: number; fret: number }[];
+  refNotes: { noteName: string; interval: string; stringNum: number; fret: number }[];
+  description: string;
+}
+
+export const MODAL_SHIFT_PAIRS: Record<ModalShiftPair, ModalShiftDef> = {
+  'dorian-aeolian': {
+    id: 'dorian-aeolian',
+    name: 'D Dorian vs D Aeolian (6 ↔ ♭6)',
+    tonicChord: 'Dm7',
+    description: 'Alternates the Dorian characteristic natural 6th (B) with Aeolian flat 6th (B♭) over Dm7.',
+    modeNotes: [
+      { noteName: 'D', interval: '1', stringNum: 5, fret: 5 },
+      { noteName: 'F', interval: 'b3', stringNum: 4, fret: 3 },
+      { noteName: 'A', interval: '5', stringNum: 4, fret: 7 },
+      { noteName: 'B', interval: '6 (Dorian Accent)', stringNum: 3, fret: 4 },
+      { noteName: 'C', interval: 'b7', stringNum: 3, fret: 5 },
+    ],
+    refNotes: [
+      { noteName: 'D', interval: '1', stringNum: 5, fret: 5 },
+      { noteName: 'F', interval: 'b3', stringNum: 4, fret: 3 },
+      { noteName: 'A', interval: '5', stringNum: 4, fret: 7 },
+      { noteName: 'Bb', interval: 'b6 (Aeolian)', stringNum: 3, fret: 3 },
+      { noteName: 'C', interval: 'b7', stringNum: 3, fret: 5 },
+    ],
+  },
+  'lydian-ionian': {
+    id: 'lydian-ionian',
+    name: 'C Lydian vs C Major (♯4 ↔ 4)',
+    tonicChord: 'Cmaj7',
+    description: 'Alternates Lydian raised 4th (F#) with Ionian natural 4th (F) over Cmaj7.',
+    modeNotes: [
+      { noteName: 'C', interval: '1', stringNum: 5, fret: 3 },
+      { noteName: 'E', interval: '3', stringNum: 4, fret: 2 },
+      { noteName: 'F#', interval: '#4 (Lydian Accent)', stringNum: 4, fret: 4 },
+      { noteName: 'G', interval: '5', stringNum: 4, fret: 5 },
+      { noteName: 'B', interval: '7', stringNum: 3, fret: 4 },
+    ],
+    refNotes: [
+      { noteName: 'C', interval: '1', stringNum: 5, fret: 3 },
+      { noteName: 'E', interval: '3', stringNum: 4, fret: 2 },
+      { noteName: 'F', interval: '4 (Ionian)', stringNum: 4, fret: 3 },
+      { noteName: 'G', interval: '5', stringNum: 4, fret: 5 },
+      { noteName: 'B', interval: '7', stringNum: 3, fret: 4 },
+    ],
+  },
+  'phrygian-aeolian': {
+    id: 'phrygian-aeolian',
+    name: 'E Phrygian vs E Aeolian (♭2 ↔ 2)',
+    tonicChord: 'Em7',
+    description: 'Alternates Phrygian flat 2nd (F) with Aeolian natural 2nd (F#) over Em7.',
+    modeNotes: [
+      { noteName: 'E', interval: '1', stringNum: 6, fret: 0 },
+      { noteName: 'F', interval: 'b2 (Phrygian Accent)', stringNum: 6, fret: 1 },
+      { noteName: 'G', interval: 'b3', stringNum: 6, fret: 3 },
+      { noteName: 'B', interval: '5', stringNum: 5, fret: 2 },
+      { noteName: 'D', interval: 'b7', stringNum: 4, fret: 0 },
+    ],
+    refNotes: [
+      { noteName: 'E', interval: '1', stringNum: 6, fret: 0 },
+      { noteName: 'F#', interval: '2 (Aeolian)', stringNum: 6, fret: 2 },
+      { noteName: 'G', interval: 'b3', stringNum: 6, fret: 3 },
+      { noteName: 'B', interval: '5', stringNum: 5, fret: 2 },
+      { noteName: 'D', interval: 'b7', stringNum: 4, fret: 0 },
+    ],
+  },
+  'mixolydian-ionian': {
+    id: 'mixolydian-ionian',
+    name: 'G Mixolydian vs G Major (♭7 ↔ 7)',
+    tonicChord: 'G7',
+    description: 'Alternates Mixolydian flat 7th (F) with Ionian major 7th (F#) over G7.',
+    modeNotes: [
+      { noteName: 'G', interval: '1', stringNum: 6, fret: 3 },
+      { noteName: 'B', interval: '3', stringNum: 5, fret: 2 },
+      { noteName: 'D', interval: '5', stringNum: 4, fret: 0 },
+      { noteName: 'F', interval: 'b7 (Mixolydian Accent)', stringNum: 4, fret: 3 },
+    ],
+    refNotes: [
+      { noteName: 'G', interval: '1', stringNum: 6, fret: 3 },
+      { noteName: 'B', interval: '3', stringNum: 5, fret: 2 },
+      { noteName: 'D', interval: '5', stringNum: 4, fret: 0 },
+      { noteName: 'F#', interval: '7 (Ionian)', stringNum: 4, fret: 4 },
+    ],
+  },
+};
+
+function generateModalShiftExercise(pairId: ModalShiftPair): TabTrack {
+  const pair = MODAL_SHIFT_PAIRS[pairId];
+  const columns: TabColumn[] = [];
+  let colId = 0;
+
+  // Round 1: Mode Phrase (with Characteristic Note)
+  pair.modeNotes.forEach((n, idx) => {
+    columns.push({
+      id: `modal-m-${colId++}`,
+      notes: [{ stringNum: n.stringNum, fret: n.fret }],
+      chordLabel: idx === 0 ? `${pair.tonicChord} [Modal Phrase]` : n.interval,
+    });
+  });
+
+  // Round 2: Reference Phrase (Standard Scale)
+  pair.refNotes.forEach((n, idx) => {
+    columns.push({
+      id: `modal-r-${colId++}`,
+      notes: [{ stringNum: n.stringNum, fret: n.fret }],
+      chordLabel: idx === 0 ? `${pair.tonicChord} [Reference Phrase]` : n.interval,
+    });
+  });
+
+  return {
+    id: 'modal-shift-exercise',
+    title: `Modal Shift Drill: ${pair.name}`,
+    tempoBpm: 90,
+    timeSignature: '4/4',
+    columns,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────
+// Exercise 4: Chord-Tone Landing Targeter Generator
+// ──────────────────────────────────────────────────────────────
+export type ChordToneProgressionId = 'ii-v-i' | 'i-iv-v' | 'pop-c-am-f-g';
+
+function generateChordToneExercise(progId: ChordToneProgressionId): TabTrack {
+  const columns: TabColumn[] = [];
+  let colId = 0;
+
+  const progressions: Record<ChordToneProgressionId, { chord: string; tones: { stringNum: number; fret: number; interval: string }[] }[]> = {
+    'ii-v-i': [
+      { chord: 'Dm7 (ii)', tones: [{ stringNum: 5, fret: 5, interval: '1' }, { stringNum: 4, fret: 3, interval: 'b3' }, { stringNum: 4, fret: 7, interval: '5' }, { stringNum: 3, fret: 5, interval: 'b7' }] },
+      { chord: 'G7 (V)', tones: [{ stringNum: 6, fret: 3, interval: '1' }, { stringNum: 5, fret: 2, interval: '3' }, { stringNum: 4, fret: 0, interval: '5' }, { stringNum: 4, fret: 3, interval: 'b7' }] },
+      { chord: 'Cmaj7 (I)', tones: [{ stringNum: 5, fret: 3, interval: '1' }, { stringNum: 4, fret: 2, interval: '3' }, { stringNum: 4, fret: 5, interval: '5' }, { stringNum: 3, fret: 4, interval: '7' }] },
+    ],
+    'i-iv-v': [
+      { chord: 'C Major (I)', tones: [{ stringNum: 5, fret: 3, interval: '1' }, { stringNum: 4, fret: 2, interval: '3' }, { stringNum: 4, fret: 5, interval: '5' }] },
+      { chord: 'F Major (IV)', tones: [{ stringNum: 6, fret: 1, interval: '1' }, { stringNum: 5, fret: 3, interval: '5' }, { stringNum: 4, fret: 3, interval: '1' }] },
+      { chord: 'G Major (V)', tones: [{ stringNum: 6, fret: 3, interval: '1' }, { stringNum: 5, fret: 2, interval: '3' }, { stringNum: 4, fret: 0, interval: '5' }] },
+      { chord: 'C Major (I)', tones: [{ stringNum: 5, fret: 3, interval: '1' }, { stringNum: 4, fret: 2, interval: '3' }, { stringNum: 4, fret: 5, interval: '5' }] },
+    ],
+    'pop-c-am-f-g': [
+      { chord: 'C Major', tones: [{ stringNum: 5, fret: 3, interval: '1' }, { stringNum: 4, fret: 2, interval: '3' }, { stringNum: 4, fret: 5, interval: '5' }] },
+      { chord: 'A Minor', tones: [{ stringNum: 5, fret: 0, interval: '1' }, { stringNum: 4, fret: 2, interval: '5' }, { stringNum: 3, fret: 2, interval: 'b3' }] },
+      { chord: 'F Major', tones: [{ stringNum: 6, fret: 1, interval: '1' }, { stringNum: 5, fret: 3, interval: '5' }, { stringNum: 4, fret: 3, interval: '1' }] },
+      { chord: 'G Major', tones: [{ stringNum: 6, fret: 3, interval: '1' }, { stringNum: 5, fret: 2, interval: '3' }, { stringNum: 4, fret: 0, interval: '5' }] },
+    ],
+  };
+
+  const selectedProg = progressions[progId];
+  selectedProg.forEach((step) => {
+    step.tones.forEach((t, idx) => {
+      columns.push({
+        id: `ct-${colId++}`,
+        notes: [{ stringNum: t.stringNum, fret: t.fret }],
+        chordLabel: idx === 0 ? step.chord : t.interval,
+      });
+    });
+  });
+
+  return {
+    id: 'chord-tone-exercise',
+    title: `Chord-Tone Landing Targeter: ${progId.toUpperCase()}`,
+    tempoBpm: 90,
+    timeSignature: '4/4',
+    columns,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────
+// Exercise 5: Tension & Resolution Generator
+// ──────────────────────────────────────────────────────────────
+export type TensionPairId = '4-to-3-major' | 'b2-to-1-phrygian' | 'sharp4-to-5-lydian' | 'b7-to-1-mixolydian';
+
+function generateTensionResolutionExercise(pairId: TensionPairId): TabTrack {
+  const columns: TabColumn[] = [];
+  let colId = 0;
+
+  const pairs: Record<TensionPairId, { name: string; chord: string; tension: { stringNum: number; fret: number; label: string }; resolution: { stringNum: number; fret: number; label: string } }> = {
+    '4-to-3-major': {
+      name: '4th Tension → 3rd Major Resolution (F → E)',
+      chord: 'C Major',
+      tension: { stringNum: 4, fret: 3, label: 'Tension (4: F)' },
+      resolution: { stringNum: 4, fret: 2, label: 'Resolve (3: E)' },
+    },
+    'b2-to-1-phrygian': {
+      name: '♭2 Phrygian Tension → 1 Root Resolution (F → E)',
+      chord: 'Em7 (Phrygian)',
+      tension: { stringNum: 6, fret: 1, label: 'Tension (♭2: F)' },
+      resolution: { stringNum: 6, fret: 0, label: 'Resolve (1: E)' },
+    },
+    'sharp4-to-5-lydian': {
+      name: '♯4 Lydian Tension → 5th Resolution (F# → G)',
+      chord: 'Cmaj7 (Lydian)',
+      tension: { stringNum: 4, fret: 4, label: 'Tension (♯4: F#)' },
+      resolution: { stringNum: 4, fret: 5, label: 'Resolve (5: G)' },
+    },
+    'b7-to-1-mixolydian': {
+      name: '♭7 Mixolydian Tension → 1 Root Resolution (F → G)',
+      chord: 'G7 (Mixolydian)',
+      tension: { stringNum: 4, fret: 3, label: 'Tension (♭7: F)' },
+      resolution: { stringNum: 6, fret: 3, label: 'Resolve (1: G)' },
+    },
+  };
+
+  const selectedPair = pairs[pairId];
+
+  for (let r = 0; r < 3; r++) {
+    columns.push({
+      id: `tr-t-${colId++}`,
+      notes: [{ stringNum: selectedPair.tension.stringNum, fret: selectedPair.tension.fret }],
+      chordLabel: `${selectedPair.chord} — ${selectedPair.tension.label}`,
+    });
+
+    columns.push({
+      id: `tr-r-${colId++}`,
+      notes: [{ stringNum: selectedPair.resolution.stringNum, fret: selectedPair.resolution.fret }],
+      chordLabel: `${selectedPair.resolution.label}`,
+    });
+  }
+
+  return {
+    id: 'tension-resolution-exercise',
+    title: `Tension & Resolution: ${selectedPair.name}`,
+    tempoBpm: 80,
+    timeSignature: '4/4',
+    columns,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────
 // Exercises Studio Component
 // ──────────────────────────────────────────────────────────────
+export type ExerciseType = 'spider' | 'strum' | 'modal-shift' | 'chord-tone' | 'tension-resolution';
+
 export const ExercisesStudio: React.FC = () => {
-  const [selectedExercise, setSelectedExercise] = useState<'spider' | 'strum'>('spider');
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseType>('spider');
 
   // Exercise 1: Spider state
   const [startFret, setStartFret] = useState<number>(1);
@@ -279,6 +518,15 @@ export const ExercisesStudio: React.FC = () => {
   const [strumPatternId, setStrumPatternId] = useState<string>('alt-8ths');
   const [strumProgressionId, setStrumProgressionId] = useState<string>('pop-c-am-f-g');
   const [repeatsPerChord, setRepeatsPerChord] = useState<number>(2);
+
+  // Exercise 3: Modal Characteristic Shift state
+  const [modalPairId, setModalPairId] = useState<ModalShiftPair>('dorian-aeolian');
+
+  // Exercise 4: Chord Tone Targeter state
+  const [chordToneProgId, setChordToneProgId] = useState<ChordToneProgressionId>('ii-v-i');
+
+  // Exercise 5: Tension & Resolution state
+  const [tensionPairId, setTensionPairId] = useState<TensionPairId>('4-to-3-major');
 
   const [bpm, setBpm] = useGlobalBpm();
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -292,13 +540,32 @@ export const ExercisesStudio: React.FC = () => {
       let t: TabTrack;
       if (selectedExercise === 'spider') {
         t = generateSpiderExercise(startFret, numPositions, direction, pattern);
-      } else {
+      } else if (selectedExercise === 'strum') {
         t = generateStrumExercise(strumPatternId, strumProgressionId, repeatsPerChord);
+      } else if (selectedExercise === 'modal-shift') {
+        t = generateModalShiftExercise(modalPairId);
+      } else if (selectedExercise === 'chord-tone') {
+        t = generateChordToneExercise(chordToneProgId);
+      } else {
+        t = generateTensionResolutionExercise(tensionPairId);
       }
       t.tempoBpm = bpm;
       return t;
     },
-    [selectedExercise, startFret, numPositions, direction, pattern, strumPatternId, strumProgressionId, repeatsPerChord, bpm]
+    [
+      selectedExercise,
+      startFret,
+      numPositions,
+      direction,
+      pattern,
+      strumPatternId,
+      strumProgressionId,
+      repeatsPerChord,
+      modalPairId,
+      chordToneProgId,
+      tensionPairId,
+      bpm,
+    ]
   );
 
   // Playback engine
@@ -384,25 +651,52 @@ export const ExercisesStudio: React.FC = () => {
             </p>
           </div>
 
-          {/* 2-Way Prominent Exercise Selection Tabs */}
-          <div className="flex flex-wrap items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shadow-inner">
+          {/* 5-Way Prominent Exercise Selection Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shadow-inner">
             <Button
               size="sm"
               variant={selectedExercise === 'spider' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('spider'); }}
-              className={`gap-2 text-xs font-bold transition-all ${selectedExercise === 'spider' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'spider' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
             >
-              <Sparkles className="h-4 w-4" />
-              <span>Exercise 1: Spider Drill (Chromatic)</span>
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>1. Spider Drill</span>
             </Button>
             <Button
               size="sm"
               variant={selectedExercise === 'strum' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('strum'); }}
-              className={`gap-2 text-xs font-bold transition-all ${selectedExercise === 'strum' ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'strum' ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
             >
-              <ChevronsUpDown className="h-4 w-4" />
-              <span>Exercise 2: Up/Down Strum & Pick Practicer</span>
+              <ChevronsUpDown className="h-3.5 w-3.5" />
+              <span>2. Strum & Pick</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedExercise === 'modal-shift' ? 'default' : 'ghost'}
+              onClick={() => { setIsPlaying(false); setSelectedExercise('modal-shift'); }}
+              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'modal-shift' ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              <Music className="h-3.5 w-3.5" />
+              <span>3. Modal Shift (Characteristic)</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedExercise === 'chord-tone' ? 'default' : 'ghost'}
+              onClick={() => { setIsPlaying(false); setSelectedExercise('chord-tone'); }}
+              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'chord-tone' ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              <Dumbbell className="h-3.5 w-3.5" />
+              <span>4. Chord-Tone Targeter</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedExercise === 'tension-resolution' ? 'default' : 'ghost'}
+              onClick={() => { setIsPlaying(false); setSelectedExercise('tension-resolution'); }}
+              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'tension-resolution' ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>5. Tension & Resolution</span>
             </Button>
           </div>
         </div>
@@ -730,6 +1024,192 @@ export const ExercisesStudio: React.FC = () => {
                 </div>
               );
             })()}
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* EXERCISE 3: MODAL CHARACTERISTIC & MODAL SHIFT DRILL */}
+        {/* ========================================================== */}
+        {selectedExercise === 'modal-shift' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-purple-500 to-indigo-400 flex items-center justify-center shadow-lg">
+                <Music className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg tracking-tight">Exercise 3: Modal Characteristic & Modal Shift Drill</h4>
+                <p className="text-xs text-muted-foreground">
+                  Hear and see the exact mode-defining characteristic note (e.g. Dorian natural 6th vs Aeolian flat 6th).
+                  Compare the modal color shift directly against the reference scale over a tonic chord.
+                </p>
+              </div>
+            </div>
+
+            {/* Pair Selector Buttons Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {(Object.keys(MODAL_SHIFT_PAIRS) as ModalShiftPair[]).map(pairKey => {
+                const pair = MODAL_SHIFT_PAIRS[pairKey];
+                const isSel = modalPairId === pairKey;
+
+                return (
+                  <button
+                    key={`modal-pair-${pairKey}`}
+                    onClick={() => { setIsPlaying(false); setModalPairId(pairKey); }}
+                    className={`p-3.5 rounded-xl border text-left text-xs transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+                      isSel
+                        ? 'border-purple-400 bg-purple-500/20 text-purple-200 ring-2 ring-purple-400/40 font-bold shadow-lg'
+                        : 'border-border/60 bg-slate-950/40 hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-foreground">{pair.name}</span>
+                      <Badge variant="outline" className="text-[10px] font-mono text-purple-300 border-purple-400/30">{pair.tonicChord}</Badge>
+                    </div>
+                    <p className="text-[11px] opacity-80 font-normal">{pair.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Playback Controls */}
+            <div className="flex items-center gap-3 border-t border-border/30 pt-4">
+              <Button
+                onClick={isPlaying ? handleStop : handlePlay}
+                className={`gap-2 font-bold ${isPlaying ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`}
+              >
+                {isPlaying ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isPlaying ? 'Stop Modal Drill' : 'Start Modal Shift Drill'}
+              </Button>
+
+              <Button variant="outline" onClick={handleRestart} className="gap-2 font-bold">
+                <RotateCcw className="h-4 w-4" />
+                Restart
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* EXERCISE 4: CHORD-TONE LANDING TARGETER */}
+        {/* ========================================================== */}
+        {selectedExercise === 'chord-tone' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-400 flex items-center justify-center shadow-lg">
+                <Dumbbell className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg tracking-tight">Exercise 4: Chord-Tone Landing Targeter</h4>
+                <p className="text-xs text-muted-foreground">
+                  Train your fingers and ear to target stable chord tones (1, 3, 5, 7) on chord changes.
+                  Master harmonic voice leading across ii - V - I and standard progression shifts.
+                </p>
+              </div>
+            </div>
+
+            {/* Progression Selector Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { id: 'ii-v-i' as ChordToneProgressionId, name: 'ii - V - I Jazz Standard (Dm7 → G7 → Cmaj7)', desc: 'Land on 1, 3, 5, 7 over minor 7th, dominant 7th, and major 7th chords.' },
+                { id: 'i-iv-v' as ChordToneProgressionId, name: 'I - IV - V Rock/Blues (C → F → G)', desc: 'Classic triad targeting across major chord progression shifts.' },
+                { id: 'pop-c-am-f-g' as ChordToneProgressionId, name: 'Pop Progression (C → Am → F → G)', desc: 'Four-chord chord-tone targeting pattern.' },
+              ].map(prog => {
+                const isSel = chordToneProgId === prog.id;
+
+                return (
+                  <button
+                    key={`ct-prog-${prog.id}`}
+                    onClick={() => { setIsPlaying(false); setChordToneProgId(prog.id); }}
+                    className={`p-3.5 rounded-xl border text-left text-xs transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+                      isSel
+                        ? 'border-sky-400 bg-sky-500/20 text-sky-200 ring-2 ring-sky-400/40 font-bold shadow-lg'
+                        : 'border-border/60 bg-slate-950/40 hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <span className="font-extrabold text-foreground">{prog.name}</span>
+                    <p className="text-[11px] opacity-80 font-normal">{prog.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Playback Controls */}
+            <div className="flex items-center gap-3 border-t border-border/30 pt-4">
+              <Button
+                onClick={isPlaying ? handleStop : handlePlay}
+                className={`gap-2 font-bold ${isPlaying ? 'bg-red-600 hover:bg-red-500' : 'bg-sky-600 hover:bg-sky-500'}`}
+              >
+                {isPlaying ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isPlaying ? 'Stop Chord-Tone Drill' : 'Start Chord-Tone Drill'}
+              </Button>
+
+              <Button variant="outline" onClick={handleRestart} className="gap-2 font-bold">
+                <RotateCcw className="h-4 w-4" />
+                Restart
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* EXERCISE 5: TENSION & RESOLUTION TRAINER */}
+        {/* ========================================================== */}
+        {selectedExercise === 'tension-resolution' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-rose-500 to-pink-400 flex items-center justify-center shadow-lg">
+                <RotateCcw className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg tracking-tight">Exercise 5: Tension & Resolution Trainer</h4>
+                <p className="text-xs text-muted-foreground">
+                  Learn how unstable tension notes (e.g. 4th, ♭2, ♯4) resolve into stable target chord tones (3rd, root, 5th).
+                </p>
+              </div>
+            </div>
+
+            {/* Tension Pair Selector Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { id: '4-to-3-major' as TensionPairId, name: '4 → 3 Major (F → E)', desc: '4th scale degree resolving to Major 3rd over C Major.' },
+                { id: 'b2-to-1-phrygian' as TensionPairId, name: '♭2 → 1 Phrygian (F → E)', desc: 'Tense Phrygian flat 2nd resolving to Root over Em7.' },
+                { id: 'sharp4-to-5-lydian' as TensionPairId, name: '♯4 → 5 Lydian (F# → G)', desc: 'Floating Lydian raised 4th resolving to 5th over Cmaj7.' },
+                { id: 'b7-to-1-mixolydian' as TensionPairId, name: '♭7 → 1 Mixolydian (F → G)', desc: 'Dominant flat 7th resolving to Root over G7.' },
+              ].map(pair => {
+                const isSel = tensionPairId === pair.id;
+
+                return (
+                  <button
+                    key={`tr-pair-${pair.id}`}
+                    onClick={() => { setIsPlaying(false); setTensionPairId(pair.id); }}
+                    className={`p-3.5 rounded-xl border text-left text-xs transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+                      isSel
+                        ? 'border-rose-400 bg-rose-500/20 text-rose-200 ring-2 ring-rose-400/40 font-bold shadow-lg'
+                        : 'border-border/60 bg-slate-950/40 hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <span className="font-extrabold text-foreground">{pair.name}</span>
+                    <p className="text-[11px] opacity-80 font-normal">{pair.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Playback Controls */}
+            <div className="flex items-center gap-3 border-t border-border/30 pt-4">
+              <Button
+                onClick={isPlaying ? handleStop : handlePlay}
+                className={`gap-2 font-bold ${isPlaying ? 'bg-red-600 hover:bg-red-500' : 'bg-rose-600 hover:bg-rose-500'}`}
+              >
+                {isPlaying ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isPlaying ? 'Stop Resolution Drill' : 'Start Tension & Resolution Drill'}
+              </Button>
+
+              <Button variant="outline" onClick={handleRestart} className="gap-2 font-bold">
+                <RotateCcw className="h-4 w-4" />
+                Restart
+              </Button>
+            </div>
           </div>
         )}
       </div>
