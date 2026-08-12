@@ -8,7 +8,57 @@ export interface GuitarToneParams {
   sustain: number;        // 1 to 10 (default 5)
   reverb: number;         // 0 to 100 (% wet mix level)
   brightness: number;     // 1000 to 8000 (Hz lowpass cutoff)
+  tone: number;           // Master tone slider 0.0 to 1.0 (dark -> warm -> bright -> sharp)
+  loopBlend: number;      // 0.10 to 0.90 (Feedback loop loss filter)
+  excitationCutoff: number; // 1000 to 8000 Hz (Pick attack filter)
+  bodyMix: number;        // 0.0 to 0.8 (Acoustic body IR mix)
+  detune: number;         // 0 to 10 cents (Unison string detune chorus)
+  distortion: number;     // 0.0 to 1.0 (WaveShaper overdrive drive)
+  outputCutoff: number;   // 1000 to 10000 Hz (Cabinet output filter)
 }
+
+export const PRESET_DSP_DEFAULTS: Record<GuitarPreset, Omit<GuitarToneParams, 'effectsEnabled' | 'sustain' | 'reverb'>> = {
+  acoustic: {
+    tone: 0.35,
+    brightness: 3600,
+    loopBlend: 0.32,
+    excitationCutoff: 3200,
+    bodyMix: 0.40,
+    detune: 3,
+    distortion: 0.00,
+    outputCutoff: 4500,
+  },
+  nylon: {
+    tone: 0.25,
+    brightness: 2600,
+    loopBlend: 0.25,
+    excitationCutoff: 2200,
+    bodyMix: 0.50,
+    detune: 0,
+    distortion: 0.00,
+    outputCutoff: 3200,
+  },
+  'electric-clean': {
+    tone: 0.60,
+    brightness: 5200,
+    loopBlend: 0.42,
+    excitationCutoff: 5500,
+    bodyMix: 0.10,
+    detune: 1,
+    distortion: 0.00,
+    outputCutoff: 7000,
+  },
+  overdrive: {
+    tone: 0.75,
+    brightness: 3200,
+    loopBlend: 0.40,
+    excitationCutoff: 5000,
+    bodyMix: 0.06,
+    detune: 1,
+    distortion: 0.55,
+    outputCutoff: 6000,
+  },
+};
 
 // Standard guitar string base pitches (string 6 to string 1)
 const STANDARD_OPEN_FREQUENCIES: Record<number, number> = {
@@ -24,10 +74,10 @@ let audioCtx: AudioContext | null = null;
 let currentPreset: GuitarPreset = 'acoustic';
 
 let currentToneParams: GuitarToneParams = {
-  effectsEnabled: false, // Defaulted to OFF!
+  effectsEnabled: false,
   sustain: 5,
   reverb: 25,
-  brightness: 3600,
+  ...PRESET_DSP_DEFAULTS.acoustic,
 };
 
 const presetListeners = new Set<(preset: GuitarPreset) => void>();
@@ -35,9 +85,11 @@ const toneParamsListeners = new Set<(params: GuitarToneParams) => void>();
 
 export function setGuitarPreset(preset: GuitarPreset): void {
   currentPreset = preset;
-  // Set default preset brightness
-  const defaultBrightness = preset === 'nylon' ? 2600 : preset === 'electric-clean' ? 5200 : preset === 'overdrive' ? 3200 : 3600;
-  currentToneParams.brightness = defaultBrightness;
+  const dsp = PRESET_DSP_DEFAULTS[preset] || PRESET_DSP_DEFAULTS.acoustic;
+  currentToneParams = {
+    ...currentToneParams,
+    ...dsp,
+  };
 
   presetListeners.forEach(listener => listener(preset));
   toneParamsListeners.forEach(listener => listener(currentToneParams));

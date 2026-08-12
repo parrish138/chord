@@ -74,24 +74,52 @@ function getReverbConvolver(ctx: AudioContext): ConvolverNode {
   return reverbConvolver;
 }
 
-function makeDistortionCurve(amount: number = 25): Float32Array {
-  const n_samples = 44100;
-  const curve = new Float32Array(n_samples);
-  const deg = Math.PI / 180;
-  for (let i = 0; i < n_samples; ++i) {
-    const x = (i * 2) / n_samples - 1;
-    curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+const bodyIRCache: Record<number, AudioBuffer> = {};
+
+/**
+ * Creates synthetic acoustic body impulse response for wood/chamber resonance
+ */
+export function makeBodyIR(audioCtx: AudioContext, brightness: number): AudioBuffer {
+  const roundedKey = Math.round(brightness * 100) / 100;
+  if (bodyIRCache[roundedKey]) return bodyIRCache[roundedKey];
+
+  const len = Math.round(audioCtx.sampleRate * 0.2);
+  const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  const freq = 95 + brightness * 25;
+  let prev = 0;
+
+  for (let i = 0; i < len; i++) {
+    const t = i / audioCtx.sampleRate;
+    const noise = Math.random() * 2 - 1;
+    prev = 0.6 * noise + 0.4 * prev;
+    data[i] = prev * Math.exp(-t * 30) * (0.6 + 0.4 * Math.sin(2 * Math.PI * freq * t));
+  }
+  bodyIRCache[roundedKey] = buf;
+  return buf;
+}
+
+/**
+ * Creates hyperbolic tangent WaveShaper curve for tube overdrive distortion
+ */
+export function makeDistortionCurve(amount: number): Float32Array {
+  const n = 44100;
+  const curve = new Float32Array(n);
+  const k = amount * 50 + 1;
+  for (let i = 0; i < n; i++) {
+    const x = (i * 2) / n - 1;
+    curve[i] = Math.tanh(k * x) / Math.tanh(k);
   }
   return curve;
 }
 
 /**
- * Pluck note using refined Karplus-Strong physical modeling algorithm
+ * Pluck note using physical string synthesis with customizable DSP algorithm modifiers
  */
 export function playRahtzPluck(
   freq: number,
   startTime: number = 0,
-  duration: number = 2.8,
+  duration: number = 2.6,
   volume: number = 0.45,
   stringNum: number = 3,
   preset: string = 'acoustic',
@@ -102,13 +130,12 @@ export function playRahtzPluck(
     ctx.resume();
   }
 
-  // Active tone params (merge default tone params with any custom overrides)
+  // Active tone & DSP params
   const activeParams: GuitarToneParams = {
     ...getGuitarToneParams(),
     ...customParams,
   };
 
-  // Safe WebAudio start time calculation for staggered strumming
   let actualStart = ctx.currentTime;
   if (startTime > 0) {
     if (startTime < 20.0) {
@@ -119,145 +146,141 @@ export function playRahtzPluck(
   }
 
   const sampleRate = ctx.sampleRate;
+  const detuneCents = activeParams.detune !== undefined ? activeParams.detune : (preset === 'acoustic' ? 3 : 1);
+  const detunes = detuneCents > 0 ? [-detuneCents, 0, detuneCents] : [0];
 
-  // 1. Period length N with linear fractional delay
-  const period = sampleRate / freq;
-  const N = Math.floor(period);
-  const frac = period - N;
+  const masterCompressor = getMasterCompressor(ctx);
 
-  const totalSamples = Math.round(sampleRate * duration);
-  const buffer = ctx.createBuffer(2, totalSamples, sampleRate);
-  const leftChannel = buffer.getChannelData(0);
-  const rightChannel = buffer.getChannelData(1);
+  detunes.forEach(cents => {
+    const tunedFreq = freq * Math.pow(2, cents / 1200);
+    const period = Math.max(2, Math.round(sampleRate / tunedFreq));
+    const totalSamples = Math.round(sampleRate * duration);
 
-  const synthesis = new Float32Array(totalSamples);
-  const delayLine = new Float32Array(N + 2);
+    const buffer = ctx.createBuffer(1, totalSamples, sampleRate);
+    const data = buffer.getChannelData(0);
 
-  // 2. Filtered Excitation Burst for ALL strings (removes harsh white noise burst)
-  const isLowString = freq < 160;
-  const excitationLength = Math.min(N, Math.round(sampleRate * (isLowString ? 0.004 : 0.0025)));
+    const ring = new Float32Array(period);
+    let excitePrev = 0;
 
-  let noisePrev = 0;
-  for (let i = 0; i < excitationLength; i++) {
-    const rawNoise = Math.random() * 2 - 1;
-    // 1-pole lowpass filter applied to excitation for every string
-    const filteredNoise = 0.75 * noisePrev + 0.25 * rawNoise;
-    noisePrev = filteredNoise;
+    // Pick attack noise burst filter (excitationCutoff)
+    const exciteCutoff = activeParams.excitationCutoff || 3200;
+    const excitationBlend = Math.min(0.9, Math.max(0.1, (exciteCutoff / sampleRate) * 8));
 
-    const envelope = Math.sin((Math.PI * i) / excitationLength);
-    delayLine[i] = filteredNoise * envelope * (isLowString ? 0.28 : 0.32);
-  }
+    for (let i = 0; i < period; i++) {
+      const rawNoise = Math.random() * 2 - 1;
+      excitePrev = excitationBlend * rawNoise + (1 - excitationBlend) * excitePrev;
+      ring[i] = excitePrev;
+    }
 
-  // 3. Tuned Damping & Sustain Coefficients (sustain ranges 1 to 10 when FX enabled)
-  const sustainOffset = activeParams.effectsEnabled ? (activeParams.sustain - 5) * 0.0025 : 0;
-  const baseDamping =
-    preset === 'nylon' ? 0.965 :
-    preset === 'electric-clean' ? 0.980 :
-    preset === 'overdrive' ? 0.975 :
-    0.975; // acoustic
+    const pickIdx = Math.max(1, Math.floor(period * 0.15));
+    for (let i = 0; i < pickIdx; i++) ring[i] *= 0.35;
 
-  const damping = Math.min(0.994, Math.max(0.920, baseDamping + sustainOffset + (isLowString ? 0.003 : 0)));
+    // In-loop feedback loss filter & decay damping
+    const loopBlend = activeParams.loopBlend !== undefined ? activeParams.loopBlend : 0.35;
+    const sustainOffset = activeParams.effectsEnabled ? (activeParams.sustain - 5) * 0.0008 : 0;
+    const baseDamping = preset === 'nylon' ? 0.992 : preset === 'electric-clean' ? 0.997 : preset === 'overdrive' ? 0.996 : 0.995;
+    const damping = Math.min(0.999, Math.max(0.950, baseDamping + sustainOffset));
 
-  // In-loop loss filter coefficient (frequency-dependent loss inside string feedback loop)
-  const lossCoeff =
-    preset === 'nylon' ? 0.30 :
-    preset === 'electric-clean' ? 0.45 :
-    preset === 'overdrive' ? 0.40 :
-    0.36;
+    let idx = 0;
+    let prev = ring[period - 1];
 
-  let readPtr = 0;
-  let loopPrev = 0;
+    for (let i = 0; i < totalSamples; i++) {
+      const cur = ring[idx];
+      const filtered = loopBlend * cur + (1 - loopBlend) * prev;
+      const decayed = filtered * damping;
+      data[i] = cur;
+      ring[idx] = decayed;
+      prev = decayed;
+      idx = (idx + 1) % period;
+    }
 
-  // 4. Karplus-Strong Loop with In-Loop Loss Filter
-  for (let i = 0; i < totalSamples; i++) {
-    const idx0 = readPtr;
-    const idx1 = (readPtr + 1) % N;
+    // Audio Graph
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
 
-    // Linear fractional interpolation on read side
-    const currentSample = delayLine[idx0] * (1 - frac) + delayLine[idx1] * frac;
-    synthesis[i] = currentSample;
+    const toneVal = activeParams.tone !== undefined ? activeParams.tone : 0.35;
+    const baseOutputCutoff = activeParams.outputCutoff || (preset === 'nylon' ? 3200 : preset === 'electric-clean' ? 7000 : preset === 'overdrive' ? 6000 : 4500);
+    const effectiveCutoff = activeParams.effectsEnabled ? activeParams.brightness : (baseOutputCutoff * (0.5 + toneVal));
 
-    // 1-pole lowpass feedback loss filter: H(z) = (1 - S) + S * z^-1
-    const filtered = (lossCoeff * currentSample + (1 - lossCoeff) * loopPrev) * damping;
-    loopPrev = currentSample;
+    const outputFilter = ctx.createBiquadFilter();
+    outputFilter.type = 'lowpass';
+    outputFilter.frequency.setValueAtTime(Math.min(20000, effectiveCutoff), actualStart);
+    outputFilter.Q.setValueAtTime(0.7, actualStart);
 
-    delayLine[readPtr] = filtered;
-    readPtr = (readPtr + 1) % N;
-  }
+    let chainEnd: AudioNode = src;
 
-  // 5. Fade tails at end of buffer
-  const fadeLength = Math.min(1024, Math.floor(totalSamples * 0.1));
-  for (let i = 0; i < fadeLength; i++) {
-    const fadeIdx = totalSamples - 1 - i;
-    synthesis[fadeIdx] *= (i / fadeLength);
-  }
+    // WaveShaper Overdrive Distortion
+    if (activeParams.distortion && activeParams.distortion > 0) {
+      const shaper = ctx.createWaveShaper();
+      shaper.curve = makeDistortionCurve(activeParams.distortion);
+      shaper.oversample = '4x';
 
-  // Stereo Spreading (-0.35 left for Low E to +0.35 right for High E)
-  const acousticLocation = (stringNum - 3.5) / 2.5;
-  const scaledVolume = isLowString ? volume * 0.75 : volume;
+      const postGain = ctx.createGain();
+      postGain.gain.setValueAtTime(0.5, actualStart);
 
-  const gainL = (1 - acousticLocation * 0.35) * 0.5 * scaledVolume;
-  const gainR = (1 + acousticLocation * 0.35) * 0.5 * scaledVolume;
+      chainEnd.connect(shaper);
+      shaper.connect(postGain);
+      chainEnd = postGain;
+    }
 
-  for (let i = 0; i < totalSamples; i++) {
-    leftChannel[i] = synthesis[i] * gainL;
-    rightChannel[i] = synthesis[i] * gainR;
-  }
+    // Acoustic Body Convolver IR Mix
+    const bodyMix = activeParams.bodyMix !== undefined ? activeParams.bodyMix : (preset === 'acoustic' ? 0.40 : preset === 'nylon' ? 0.50 : 0.05);
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(1.0, actualStart);
 
-  // 6. Audio Buffer & Output Cabinet Filters
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
+    if (bodyMix > 0) {
+      const conv = ctx.createConvolver();
+      conv.buffer = makeBodyIR(ctx, bodyMix);
+      conv.normalize = true;
 
-  const defaultCutoff = preset === 'nylon' ? 2600 : preset === 'electric-clean' ? 5000 : preset === 'overdrive' ? 3000 : 3200;
-  const cutoffHz = activeParams.effectsEnabled ? activeParams.brightness : defaultCutoff;
+      const dry = ctx.createGain();
+      const wet = ctx.createGain();
+      dry.gain.setValueAtTime(1 - bodyMix, actualStart);
+      wet.gain.setValueAtTime(bodyMix, actualStart);
 
-  const lowpassFilter = ctx.createBiquadFilter();
-  lowpassFilter.type = 'lowpass';
-  lowpassFilter.frequency.setValueAtTime(cutoffHz, actualStart);
+      chainEnd.connect(dry);
+      chainEnd.connect(conv);
+      conv.connect(wet);
 
-  const bassFilter = ctx.createBiquadFilter();
-  bassFilter.type = 'lowshelf';
-  bassFilter.frequency.setValueAtTime(100, actualStart);
-  bassFilter.gain.setValueAtTime(isLowString ? 2.5 : 1.0, actualStart);
+      dry.connect(bodyGain);
+      wet.connect(bodyGain);
+    } else {
+      chainEnd.connect(bodyGain);
+    }
 
-  const bodyResonance = ctx.createBiquadFilter();
-  bodyResonance.type = 'peaking';
-  bodyResonance.frequency.setValueAtTime(180, actualStart);
-  bodyResonance.Q.setValueAtTime(1.2, actualStart);
-  bodyResonance.gain.setValueAtTime(1.5, actualStart);
+    bodyGain.connect(outputFilter);
 
-  const gainNode = ctx.createGain();
-  gainNode.gain.setValueAtTime(1.0, actualStart);
+    // Stereo Panning & Volume Gain
+    const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    const panPos = ((stringNum - 3.5) / 2.5) * 0.35; // -0.35 left (Low E) to +0.35 right (High E)
 
-  const compressor = getMasterCompressor(ctx);
+    const masterGain = ctx.createGain();
+    const voiceGain = (0.32 / detunes.length) * volume;
+    masterGain.gain.setValueAtTime(voiceGain, actualStart);
 
-  if (preset === 'overdrive') {
-    const waveShaper = ctx.createWaveShaper();
-    waveShaper.curve = makeDistortionCurve(25);
-    source.connect(waveShaper);
-    waveShaper.connect(lowpassFilter);
-  } else {
-    source.connect(lowpassFilter);
-  }
+    if (panner) {
+      panner.pan.setValueAtTime(panPos, actualStart);
+      outputFilter.connect(panner);
+      panner.connect(masterGain);
+    } else {
+      outputFilter.connect(masterGain);
+    }
 
-  lowpassFilter.connect(bassFilter);
-  bassFilter.connect(bodyResonance);
-  bodyResonance.connect(gainNode);
+    masterGain.connect(masterCompressor);
 
-  // Direct dry signal to master compressor
-  gainNode.connect(compressor);
+    // Reverb Convolver Send (if FX enabled)
+    if (activeParams.effectsEnabled && activeParams.reverb > 0) {
+      const convolver = getReverbConvolver(ctx);
+      const wetGain = ctx.createGain();
+      const wetLevel = (activeParams.reverb / 100) * 0.35;
+      wetGain.gain.setValueAtTime(wetLevel, actualStart);
 
-  // Wet Reverb Convolver Node (only applied if FX toggle is enabled)
-  if (activeParams.effectsEnabled && activeParams.reverb > 0) {
-    const convolver = getReverbConvolver(ctx);
-    const wetGain = ctx.createGain();
-    const wetLevel = (activeParams.reverb / 100) * 0.35;
-    wetGain.gain.setValueAtTime(wetLevel, actualStart);
+      masterGain.connect(convolver);
+      convolver.connect(wetGain);
+      wetGain.connect(masterCompressor);
+    }
 
-    gainNode.connect(convolver);
-    convolver.connect(wetGain);
-    wetGain.connect(compressor);
-  }
-
-  source.start(actualStart);
+    src.start(actualStart);
+    src.stop(actualStart + duration + 0.2);
+  });
 }

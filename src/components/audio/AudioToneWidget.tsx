@@ -192,16 +192,37 @@ export const AudioToneWidget: React.FC = () => {
                 </div>
               </div>
 
-              {/* FX Enable Toggle Switch & Sliders */}
+              {/* Master Tone Slider (darker -> brighter) */}
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-1.5 shadow-inner">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="flex items-center gap-1.5 text-amber-300">
+                    <SunMedium className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Tone (darker → brighter):</span>
+                  </span>
+                  <span className="font-mono font-bold text-xs uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                    {toneParams.tone < 0.3 ? 'dark' : toneParams.tone < 0.6 ? 'warm' : toneParams.tone < 0.85 ? 'bright' : 'sharp'} ({Math.round(toneParams.tone * 100)}%)
+                  </span>
+                </div>
+                <Slider
+                  value={[toneParams.tone]}
+                  onValueChange={vals => handleToneParamChange('tone', vals[0])}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  className="py-1"
+                />
+              </div>
+
+              {/* FX & Hands-On DSP Algorithm Tweaker Panel */}
               <div className="p-3.5 rounded-xl bg-muted/40 border border-border/40 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <Sliders className="h-3.5 w-3.5 text-primary" />
-                    <span>Custom FX & Tone Tweaker</span>
+                    <span>DSP Physics Modifiers</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold text-muted-foreground">
-                      {toneParams.effectsEnabled ? 'ON' : 'OFF'}
+                      {toneParams.effectsEnabled ? 'CUSTOM' : 'PRESET'}
                     </span>
                     <Switch
                       checked={toneParams.effectsEnabled}
@@ -211,24 +232,101 @@ export const AudioToneWidget: React.FC = () => {
                 </div>
 
                 {toneParams.effectsEnabled && (
-                  <div className="space-y-3 pt-2 border-t border-border/30 animate-in fade-in-0">
+                  <div className="space-y-3 pt-2 border-t border-border/30 animate-in fade-in-0 text-xs">
+                    {/* Loop Blend (Loss Filter) */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400" /> Sustain Ring</span>
-                        <span className="font-mono font-bold text-foreground">{toneParams.sustain} / 10</span>
+                        <span className="flex items-center gap-1 font-semibold"><Waves className="h-3 w-3 text-cyan-400" /> Loop Loss Filter (loopBlend)</span>
+                        <span className="font-mono font-bold text-foreground">{toneParams.loopBlend}</span>
                       </div>
                       <Slider
-                        value={[toneParams.sustain]}
-                        onValueChange={vals => handleToneParamChange('sustain', vals[0])}
-                        min={1}
+                        value={[toneParams.loopBlend]}
+                        onValueChange={vals => handleToneParamChange('loopBlend', vals[0])}
+                        min={0.10}
+                        max={0.90}
+                        step={0.01}
+                      />
+                    </div>
+
+                    {/* Excitation Pick Attack Cutoff */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold"><Sparkles className="h-3 w-3 text-amber-400" /> Pick Attack Cutoff</span>
+                        <span className="font-mono font-bold text-foreground">{toneParams.excitationCutoff} Hz</span>
+                      </div>
+                      <Slider
+                        value={[toneParams.excitationCutoff]}
+                        onValueChange={vals => handleToneParamChange('excitationCutoff', vals[0])}
+                        min={1000}
+                        max={8000}
+                        step={100}
+                      />
+                    </div>
+
+                    {/* Acoustic Body Convolver Mix */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold"><Music className="h-3 w-3 text-emerald-400" /> Body IR Convolver Mix</span>
+                        <span className="font-mono font-bold text-foreground">{Math.round(toneParams.bodyMix * 100)}%</span>
+                      </div>
+                      <Slider
+                        value={[toneParams.bodyMix]}
+                        onValueChange={vals => handleToneParamChange('bodyMix', vals[0])}
+                        min={0}
+                        max={0.80}
+                        step={0.02}
+                      />
+                    </div>
+
+                    {/* Unison Detune Chorus */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold"><Zap className="h-3 w-3 text-purple-400" /> Multi-String Detune Chorus</span>
+                        <span className="font-mono font-bold text-foreground">{toneParams.detune} cents</span>
+                      </div>
+                      <Slider
+                        value={[toneParams.detune]}
+                        onValueChange={vals => handleToneParamChange('detune', vals[0])}
+                        min={0}
                         max={10}
                         step={1}
                       />
                     </div>
 
+                    {/* WaveShaper Distortion */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><Waves className="h-3 w-3 text-blue-400" /> Room Reverb</span>
+                        <span className="flex items-center gap-1 font-semibold"><Zap className="h-3 w-3 text-rose-400" /> Overdrive Distortion</span>
+                        <span className="font-mono font-bold text-foreground">{Math.round(toneParams.distortion * 100)}%</span>
+                      </div>
+                      <Slider
+                        value={[toneParams.distortion]}
+                        onValueChange={vals => handleToneParamChange('distortion', vals[0])}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                      />
+                    </div>
+
+                    {/* Cabinet Output Cutoff */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold"><SunMedium className="h-3 w-3 text-yellow-400" /> Master Cabinet Cutoff</span>
+                        <span className="font-mono font-bold text-foreground">{toneParams.outputCutoff} Hz</span>
+                      </div>
+                      <Slider
+                        value={[toneParams.outputCutoff]}
+                        onValueChange={vals => handleToneParamChange('outputCutoff', vals[0])}
+                        min={1000}
+                        max={10000}
+                        step={250}
+                      />
+                    </div>
+
+                    {/* Room Reverb */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold"><Waves className="h-3 w-3 text-blue-400" /> Room Reverb Send</span>
                         <span className="font-mono font-bold text-foreground">{toneParams.reverb}%</span>
                       </div>
                       <Slider
@@ -237,20 +335,6 @@ export const AudioToneWidget: React.FC = () => {
                         min={0}
                         max={100}
                         step={5}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><SunMedium className="h-3 w-3 text-yellow-400" /> Tone Brightness</span>
-                        <span className="font-mono font-bold text-foreground">{toneParams.brightness} Hz</span>
-                      </div>
-                      <Slider
-                        value={[toneParams.brightness]}
-                        onValueChange={vals => handleToneParamChange('brightness', vals[0])}
-                        min={1200}
-                        max={8000}
-                        step={200}
                       />
                     </div>
                   </div>
@@ -265,7 +349,7 @@ export const AudioToneWidget: React.FC = () => {
                     <button
                       key={`widget-pluck-${s}`}
                       onClick={() => handleTestPluck(s)}
-                      className="py-1 rounded text-[11px] font-mono font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 active:scale-95 transition-all"
+                      className="py-1 rounded text-[11px] font-mono font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 active:scale-95 transition-all cursor-pointer"
                     >
                       {s}: {s === 6 ? 'E2' : s === 5 ? 'A2' : s === 4 ? 'D3' : s === 3 ? 'G3' : s === 2 ? 'B3' : 'E4'}
                     </button>
@@ -273,27 +357,41 @@ export const AudioToneWidget: React.FC = () => {
                 </div>
               </div>
 
-              {/* Dual Down & Up Strum Test Buttons */}
-              <div className="pt-2 border-t border-border/30 flex gap-2">
+              {/* Strum Down, Strum Up, & Block Chord Buttons */}
+              <div className="pt-2 border-t border-border/30 grid grid-cols-3 gap-1.5">
                 <Button
                   size="sm"
                   variant="default"
                   onClick={() => handleStrum('down')}
                   disabled={isPlayingStrum}
-                  className="flex-1 gap-1.5 text-xs font-bold"
+                  className="gap-1 text-[11px] font-bold px-1"
                 >
                   <ArrowDown className="h-3.5 w-3.5" />
-                  Down Strum
+                  Strum Down
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => handleStrum('up')}
                   disabled={isPlayingStrum}
-                  className="flex-1 gap-1.5 text-xs font-bold"
+                  className="gap-1 text-[11px] font-bold px-1"
                 >
                   <ArrowUp className="h-3.5 w-3.5" />
-                  Up Strum
+                  Strum Up
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsPlayingStrum(true);
+                    strumChord(PRESET_CHORDS[0], 'down', 0, selectedPreset);
+                    setTimeout(() => setIsPlayingStrum(false), 800);
+                  }}
+                  disabled={isPlayingStrum}
+                  className="gap-1 text-[11px] font-bold px-1 text-amber-300 border-amber-500/30"
+                >
+                  <Zap className="h-3.5 w-3.5 text-amber-400" />
+                  Block Chord
                 </Button>
               </div>
             </div>
