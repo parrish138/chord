@@ -662,7 +662,7 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                               const isPosActive = activePositions.size === 0
                                 ? false
                                 : Array.from(activePositions).some(pNum =>
-                                    isNoteInScalePosition(rootNote, matchingNote.fret, pNum, matchingNote.noteName, selectedScaleId)
+                                    isNoteInScalePosition(rootNote, matchingNote.fret, pNum)
                                   );
 
                               // Evaluate active visibility for all note role & position categories

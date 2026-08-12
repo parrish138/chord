@@ -383,48 +383,45 @@ export function getNoteRoleInContext(scaleId: string, interval: string): NoteRol
  * The right-hand boundary notes of Position P form the left-hand boundary of Position P+1.
  */
 /**
- * Determines all scale box positions (1 to 5) that a fretboard note belongs to based on scale degree.
- * Ensures each box position shape (1..5) contains all 3 notes per string for Pentatonic, Major, Minor, and Modal scales.
+ * Determines whether a fretboard note belongs to scale box position (1, 2, 3, 4, or 5).
+ * Position 1 starts at the first instance of the root note on the bottom string (String 6) and ascends through the scale to String 1.
+ * Positions 2, 3, 4, 5 start at each ascending scale degree on String 6:
+ * - Position 1: Root shape window [0, 1, 2, 3] semitones from root on String 6
+ * - Position 2: 2nd degree shape window [2, 3, 4, 5] semitones from root on String 6
+ * - Position 3: 3rd degree shape window [4, 5, 6, 7] semitones from root on String 6
+ * - Position 4: 4th degree shape window [7, 8, 9, 10] semitones from root on String 6
+ * - Position 5: 5th degree shape window [9, 10, 11, 0] semitones from root on String 6
  */
-export function getScalePositionsForNote(rootNote: string, noteName: string, scaleId: string = 'pentatonic-minor'): number[] {
-  const scaleNotes = getScaleNotes(rootNote, scaleId);
-  if (scaleNotes.length === 0) return [1];
+export function isNoteInScalePosition(rootNote: string, fret: number, position: number): boolean {
+  const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
+  const lowEIdx = NOTES_CHROMATIC.indexOf('E');
+  const rootFretLowE = (rootIdx - lowEIdx + 12) % 12;
+  const d = (fret - rootFretLowE + 24) % 12;
 
-  const degIndex = scaleNotes.findIndex(n => n.noteName === noteName);
-  if (degIndex === -1) return [1];
-
-  const totalDegrees = scaleNotes.length;
-  const normDeg = (degIndex / totalDegrees) * 5;
-
-  const positions: number[] = [];
-  for (let p = 1; p <= 5; p++) {
-    const pCenter = p - 1;
-    let dist = Math.abs(normDeg - pCenter);
-    if (dist > 2.5) dist = 5 - dist;
-
-    // 1.45 normalized radius encompasses 3 scale notes per string for each box position
-    if (dist <= 1.45) {
-      positions.push(p);
-    }
+  switch (position) {
+    case 1:
+      return d === 0 || d === 1 || d === 2 || d === 3;
+    case 2:
+      return d === 2 || d === 3 || d === 4 || d === 5;
+    case 3:
+      return d === 4 || d === 5 || d === 6 || d === 7;
+    case 4:
+      return d === 7 || d === 8 || d === 9 || d === 10;
+    case 5:
+      return d === 9 || d === 10 || d === 11 || d === 0;
+    default:
+      return true;
   }
-
-  return positions.length > 0 ? positions : [1];
-}
-
-/**
- * Determines whether a fretboard note belongs to scale box position (1 to 5).
- */
-export function isNoteInScalePosition(rootNote: string, fret: number, position: number, noteName: string = rootNote, scaleId: string = 'pentatonic-minor'): boolean {
-  const positions = getScalePositionsForNote(rootNote, noteName, scaleId);
-  return positions.includes(position);
 }
 
 /**
  * Calculates primary scale box position (1 to 5) for a given fretboard note.
  */
-export function calculateFretboardPosition(rootNote: string, fret: number, noteName: string = rootNote, scaleId: string = 'pentatonic-minor'): number {
-  const positions = getScalePositionsForNote(rootNote, noteName, scaleId);
-  return positions.length > 0 ? positions[0] : 1;
+export function calculateFretboardPosition(rootNote: string, fret: number): number {
+  for (let p = 1; p <= 5; p++) {
+    if (isNoteInScalePosition(rootNote, fret, p)) return p;
+  }
+  return 1;
 }
 
 /**
@@ -453,7 +450,7 @@ export function generateFretboardScale(
       const interval = matchingScaleItem ? matchingScaleItem.interval : (INTERVAL_LABELS_MAP[noteSemis] || '1');
       const isRoot = noteSemis === 0;
       const noteRole = getNoteRoleInContext(scaleId, interval);
-      const position = calculateFretboardPosition(rootNote, f, noteName, scaleId);
+      const position = calculateFretboardPosition(rootNote, f);
 
       if (isMatch || includeOffScaleNotes) {
         fretboardNotes.push({
