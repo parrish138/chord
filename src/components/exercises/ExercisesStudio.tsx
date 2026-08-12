@@ -383,25 +383,25 @@ export const ExercisesStudio: React.FC = () => {
             </p>
           </div>
 
-          {/* 2-Way Exercise Selection Switcher */}
-          <div className="flex flex-wrap items-center gap-2 bg-muted/40 p-1.5 rounded-xl border border-border/50">
+          {/* 2-Way Prominent Exercise Selection Tabs */}
+          <div className="flex flex-wrap items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shadow-inner">
             <Button
               size="sm"
               variant={selectedExercise === 'spider' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('spider'); }}
-              className="gap-2 text-xs font-bold"
+              className={`gap-2 text-xs font-bold transition-all ${selectedExercise === 'spider' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
             >
-              <Sparkles className="h-4 w-4 text-emerald-400" />
-              Exercise 1: Spider Drill (Chromatic)
+              <Sparkles className="h-4 w-4" />
+              <span>Exercise 1: Spider Drill (Chromatic)</span>
             </Button>
             <Button
               size="sm"
               variant={selectedExercise === 'strum' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('strum'); }}
-              className="gap-2 text-xs font-bold"
+              className={`gap-2 text-xs font-bold transition-all ${selectedExercise === 'strum' ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
             >
-              <ChevronsUpDown className="h-4 w-4 text-amber-400" />
-              Exercise 2: Up/Down Strum & Pick Practicer
+              <ChevronsUpDown className="h-4 w-4" />
+              <span>Exercise 2: Up/Down Strum & Pick Practicer</span>
             </Button>
           </div>
         </div>
