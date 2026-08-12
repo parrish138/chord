@@ -16,14 +16,24 @@ import { Badge } from '../ui/badge';
 // Repeats across the fretboard.
 
 type SpiderDirection = 'up' | 'down' | 'updown';
+type SpiderPattern = '1-2-3-4' | '4-3-2-1' | '1-3-2-4' | '1-4-2-3';
+
+const PATTERN_OFFSETS: Record<SpiderPattern, number[]> = {
+  '1-2-3-4': [0, 1, 2, 3],
+  '4-3-2-1': [3, 2, 1, 0],
+  '1-3-2-4': [0, 2, 1, 3],
+  '1-4-2-3': [0, 3, 1, 2],
+};
 
 function generateSpiderExercise(
   startFret: number,
   numPositions: number,
-  direction: SpiderDirection
+  direction: SpiderDirection,
+  pattern: SpiderPattern = '1-2-3-4'
 ): TabTrack {
   const columns: TabColumn[] = [];
   let colId = 0;
+  const offsets = PATTERN_OFFSETS[pattern];
 
   const makeCol = (stringNum: number, fret: number, label?: string): TabColumn => ({
     id: `spider-${colId++}`,
@@ -36,23 +46,27 @@ function generateSpiderExercise(
     if (baseFret + 3 > 24) break; // Don't exceed 24 frets
 
     // Label the start of each position
-    const posLabel = `Pos ${baseFret}`;
+    const posLabel = `Shift Pos ${baseFret} (Frets ${baseFret}-${baseFret + 3})`;
 
     if (direction === 'up' || direction === 'updown') {
-      // Ascending: String 6 → 1, frets baseFret to baseFret+3
+      // Ascending: String 6 → 1
       for (let s = 6; s >= 1; s--) {
-        for (let f = 0; f < 4; f++) {
-          columns.push(makeCol(s, baseFret + f, s === 6 && f === 0 ? posLabel : undefined));
+        for (let i = 0; i < offsets.length; i++) {
+          const fretOffset = offsets[i];
+          const isFirstNote = s === 6 && i === 0;
+          columns.push(makeCol(s, baseFret + fretOffset, isFirstNote ? posLabel : undefined));
         }
       }
     }
 
     if (direction === 'down' || direction === 'updown') {
-      // Descending: String 1 → 6, frets baseFret+3 to baseFret
+      // Descending: String 1 → 6
+      const descOffsets = [...offsets].reverse();
       for (let s = 1; s <= 6; s++) {
-        for (let f = 3; f >= 0; f--) {
-          const label = direction === 'down' && s === 1 && f === 3 ? posLabel : undefined;
-          columns.push(makeCol(s, baseFret + f, label));
+        for (let i = 0; i < descOffsets.length; i++) {
+          const fretOffset = descOffsets[i];
+          const isFirstNote = direction === 'down' && s === 1 && i === 0;
+          columns.push(makeCol(s, baseFret + fretOffset, isFirstNote ? posLabel : undefined));
         }
       }
     }
@@ -60,7 +74,7 @@ function generateSpiderExercise(
 
   return {
     id: 'spider-exercise',
-    title: `Spider Exercise — Chromatic (Fret ${startFret})`,
+    title: `Spider Exercise (${pattern}) — Fret ${startFret}`,
     tempoBpm: 80,
     timeSignature: '4/4',
     columns,
@@ -74,6 +88,7 @@ export const ExercisesStudio: React.FC = () => {
   const [startFret, setStartFret] = useState<number>(1);
   const [numPositions, setNumPositions] = useState<number>(4);
   const [direction, setDirection] = useState<SpiderDirection>('updown');
+  const [pattern, setPattern] = useState<SpiderPattern>('1-2-3-4');
   const [bpm, setBpm] = useState<number>(80);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [activeColIndex, setActiveColIndex] = useState<number>(-1);
@@ -83,11 +98,11 @@ export const ExercisesStudio: React.FC = () => {
 
   const track = React.useMemo(
     () => {
-      const t = generateSpiderExercise(startFret, numPositions, direction);
+      const t = generateSpiderExercise(startFret, numPositions, direction, pattern);
       t.tempoBpm = bpm;
       return t;
     },
-    [startFret, numPositions, direction, bpm]
+    [startFret, numPositions, direction, pattern, bpm]
   );
 
   // Playback engine
@@ -236,6 +251,24 @@ export const ExercisesStudio: React.FC = () => {
               </div>
             </div>
 
+            {/* Finger Pattern Permutation */}
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-3">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Finger Pattern</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(['1-2-3-4', '4-3-2-1', '1-3-2-4', '1-4-2-3'] as SpiderPattern[]).map(pat => (
+                  <Button
+                    key={pat}
+                    size="sm"
+                    variant={pattern === pat ? 'default' : 'outline'}
+                    onClick={() => { setIsPlaying(false); setPattern(pat); }}
+                    className="gap-1 text-[11px] font-mono font-bold h-7"
+                  >
+                    {pat}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* Direction */}
             <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-3">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Direction</label>
@@ -246,7 +279,7 @@ export const ExercisesStudio: React.FC = () => {
                     size="sm"
                     variant={direction === opt.value ? 'default' : 'outline'}
                     onClick={() => { setIsPlaying(false); setDirection(opt.value); }}
-                    className="flex-1 gap-1 text-[11px] font-bold"
+                    className="flex-1 gap-1 text-[11px] font-bold h-7"
                   >
                     {opt.icon}
                     {opt.label}
@@ -272,7 +305,7 @@ export const ExercisesStudio: React.FC = () => {
             </Button>
 
             <div className="flex items-center gap-2 ml-auto text-xs text-muted-foreground">
-              <Music className="h-4 w-4" />
+              <Music className="h-4 w-4 text-amber-400" />
               <span className="font-mono font-bold">{track.columns.length} notes</span>
               <span>•</span>
               <span className="font-mono">
@@ -280,6 +313,41 @@ export const ExercisesStudio: React.FC = () => {
               </span>
             </div>
           </div>
+
+          {/* Live Playback Active Note HUD */}
+          {activeColIndex >= 0 && track.columns[activeColIndex] && (() => {
+            const col = track.columns[activeColIndex];
+            const note = col.notes[0];
+            const stringNames = ['', '1 (High E)', '2 (B)', '3 (G)', '4 (D)', '5 (A)', '6 (Low E)'];
+
+            return (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-emerald-500/10 border border-amber-500/30 flex items-center justify-between shadow-lg animate-pulse">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black font-mono text-lg shadow-md">
+                    {note ? `${note.fret}` : '-'}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm flex items-center gap-2 text-foreground">
+                      <span>String {stringNames[note?.stringNum || 1]}</span>
+                      <Badge variant="secondary" className="font-mono text-[10px] bg-primary/20 text-primary border-primary/30">
+                        Fret {note?.fret}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Step {activeColIndex + 1} of {track.columns.length} &bull; {col.chordLabel || 'Moving in sequence'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">Active Fingering</span>
+                  <span className="font-mono font-black text-base text-emerald-400">
+                    Finger {note ? `${((note.fret - 1) % 4) + 1}` : '-'}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Fingering Guide */}
           <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 space-y-2">
