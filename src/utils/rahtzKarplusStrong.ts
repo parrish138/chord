@@ -1,6 +1,7 @@
 /**
- * Rahtz Karplus-Strong Physical String Synthesis Engine (Warm & Deep Bass)
- * Refined for deep, rich acoustic bass on low notes (E2, A2) and crisp response on high notes (E4).
+ * Rahtz Karplus-Strong Physical String Synthesis Engine
+ * Refined guitar DSP physics with in-loop loss filtering, filtered excitation bursts,
+ * tuned damping coefficients, and a master dynamics compressor.
  */
 
 export interface RahtzKSOptions {
@@ -18,6 +19,7 @@ export const DEFAULT_RAHTZ_OPTIONS: RahtzKSOptions = {
 };
 
 let audioCtx: AudioContext | null = null;
+let masterCompressor: DynamicsCompressorNode | null = null;
 
 function getAudioContext(): AudioContext {
   if (!audioCtx) {
@@ -30,7 +32,20 @@ function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-function makeDistortionCurve(amount: number = 35): Float32Array {
+function getMasterCompressor(ctx: AudioContext): DynamicsCompressorNode {
+  if (!masterCompressor || masterCompressor.context !== ctx) {
+    masterCompressor = ctx.createDynamicsCompressor();
+    masterCompressor.threshold.setValueAtTime(-12, ctx.currentTime);
+    masterCompressor.knee.setValueAtTime(10, ctx.currentTime);
+    masterCompressor.ratio.setValueAtTime(4, ctx.currentTime);
+    masterCompressor.attack.setValueAtTime(0.003, ctx.currentTime);
+    masterCompressor.release.setValueAtTime(0.15, ctx.currentTime);
+    masterCompressor.connect(ctx.destination);
+  }
+  return masterCompressor;
+}
+
+function makeDistortionCurve(amount: number = 25): Float32Array {
   const n_samples = 44100;
   const curve = new Float32Array(n_samples);
   const deg = Math.PI / 180;
@@ -42,7 +57,7 @@ function makeDistortionCurve(amount: number = 35): Float32Array {
 }
 
 /**
- * Pluck note using Karplus-Strong algorithm with WebAudio timestamp calculation
+ * Pluck note using refined Karplus-Strong physical modeling algorithm
  */
 export function playRahtzPluck(
   freq: number,
@@ -57,21 +72,19 @@ export function playRahtzPluck(
     ctx.resume();
   }
 
-  // Safe WebAudio start time calculation
+  // Safe WebAudio start time calculation for staggered strumming
   let actualStart = ctx.currentTime;
   if (startTime > 0) {
     if (startTime < 20.0) {
-      // Relative offset in seconds (e.g. 0.035s for strum stagger)
       actualStart = ctx.currentTime + startTime;
     } else {
-      // Absolute WebAudio timestamp
       actualStart = Math.max(ctx.currentTime, startTime);
     }
   }
 
   const sampleRate = ctx.sampleRate;
 
-  // 1. Exact Period length N (with fractional delay)
+  // 1. Period length N with linear fractional delay
   const period = sampleRate / freq;
   const N = Math.floor(period);
   const frac = period - N;
@@ -84,43 +97,54 @@ export function playRahtzPluck(
   const synthesis = new Float32Array(totalSamples);
   const delayLine = new Float32Array(N + 2);
 
-  // 2. Excitation Burst:
+  // 2. Filtered Excitation Burst for ALL strings (removes harsh white noise burst)
   const isLowString = freq < 160;
   const excitationLength = Math.min(N, Math.round(sampleRate * (isLowString ? 0.004 : 0.0025)));
 
   let noisePrev = 0;
   for (let i = 0; i < excitationLength; i++) {
     const rawNoise = Math.random() * 2 - 1;
-    const filteredNoise = isLowString ? 0.6 * rawNoise + 0.4 * noisePrev : rawNoise;
+    // 1-pole lowpass filter applied to excitation for every string
+    const filteredNoise = 0.75 * noisePrev + 0.25 * rawNoise;
     noisePrev = filteredNoise;
 
     const envelope = Math.sin((Math.PI * i) / excitationLength);
-    delayLine[i] = filteredNoise * envelope * (isLowString ? 0.35 : 0.45);
+    delayLine[i] = filteredNoise * envelope * (isLowString ? 0.28 : 0.32);
   }
 
-  // 3. Damping coefficient
-  const baseDamping = preset === 'nylon' ? 0.968 : preset === 'overdrive' ? 0.991 : 0.985;
-  const damping = isLowString ? Math.min(0.992, baseDamping + 0.004) : baseDamping;
+  // 3. Tuned Damping Coefficients per preset
+  const baseDamping =
+    preset === 'nylon' ? 0.965 :
+    preset === 'electric-clean' ? 0.980 :
+    preset === 'overdrive' ? 0.975 :
+    0.975; // acoustic
+
+  const damping = isLowString ? Math.min(0.985, baseDamping + 0.003) : baseDamping;
+
+  // In-loop loss filter coefficient (frequency-dependent loss inside string feedback loop)
+  const S = preset === 'nylon' ? 0.48 : 0.35;
 
   let readPtr = 0;
-  let prevSample = 0;
+  let loopPrev = 0;
 
-  // 4. Karplus-Strong Loop
+  // 4. Karplus-Strong Loop with In-Loop Loss Filter
   for (let i = 0; i < totalSamples; i++) {
     const idx0 = readPtr;
     const idx1 = (readPtr + 1) % N;
 
+    // Linear fractional interpolation on read side
     const currentSample = delayLine[idx0] * (1 - frac) + delayLine[idx1] * frac;
     synthesis[i] = currentSample;
 
-    const filtered = 0.5 * (currentSample + prevSample) * damping;
-    prevSample = currentSample;
+    // 1-pole lowpass feedback loss filter: H(z) = (1 - S) + S * z^-1
+    const filtered = ((1 - S) * currentSample + S * loopPrev) * damping;
+    loopPrev = currentSample;
 
     delayLine[readPtr] = filtered;
     readPtr = (readPtr + 1) % N;
   }
 
-  // 5. Fade tails
+  // 5. Fade tails at end of buffer
   const fadeLength = Math.min(1024, Math.floor(totalSamples * 0.1));
   for (let i = 0; i < fadeLength; i++) {
     const fadeIdx = totalSamples - 1 - i;
@@ -129,7 +153,7 @@ export function playRahtzPluck(
 
   // Stereo Spreading (-0.35 left for Low E to +0.35 right for High E)
   const acousticLocation = (stringNum - 3.5) / 2.5;
-  const scaledVolume = isLowString ? volume * 0.8 : volume;
+  const scaledVolume = isLowString ? volume * 0.75 : volume;
 
   const gainL = (1 - acousticLocation * 0.35) * 0.5 * scaledVolume;
   const gainR = (1 + acousticLocation * 0.35) * 0.5 * scaledVolume;
@@ -143,7 +167,11 @@ export function playRahtzPluck(
   const source = ctx.createBufferSource();
   source.buffer = buffer;
 
-  const cutoffHz = preset === 'nylon' ? 2600 : preset === 'electric-clean' ? 5000 : preset === 'overdrive' ? 3000 : 4000;
+  const cutoffHz =
+    preset === 'nylon' ? 2600 :
+    preset === 'electric-clean' ? 5000 :
+    preset === 'overdrive' ? 3000 :
+    3200; // acoustic (lowered to 3.2kHz for natural warmth)
 
   const lowpassFilter = ctx.createBiquadFilter();
   lowpassFilter.type = 'lowpass';
@@ -151,21 +179,23 @@ export function playRahtzPluck(
 
   const bassFilter = ctx.createBiquadFilter();
   bassFilter.type = 'lowshelf';
-  bassFilter.frequency.setValueAtTime(120, actualStart);
-  bassFilter.gain.setValueAtTime(isLowString ? 5.0 : 3.0, actualStart);
+  bassFilter.frequency.setValueAtTime(100, actualStart);
+  bassFilter.gain.setValueAtTime(isLowString ? 2.5 : 1.0, actualStart);
 
   const bodyResonance = ctx.createBiquadFilter();
   bodyResonance.type = 'peaking';
   bodyResonance.frequency.setValueAtTime(180, actualStart);
-  bodyResonance.Q.setValueAtTime(1.5, actualStart);
-  bodyResonance.gain.setValueAtTime(2.5, actualStart);
+  bodyResonance.Q.setValueAtTime(1.2, actualStart);
+  bodyResonance.gain.setValueAtTime(1.5, actualStart);
 
   const gainNode = ctx.createGain();
   gainNode.gain.setValueAtTime(1.0, actualStart);
 
+  const compressor = getMasterCompressor(ctx);
+
   if (preset === 'overdrive') {
     const waveShaper = ctx.createWaveShaper();
-    waveShaper.curve = makeDistortionCurve(35);
+    waveShaper.curve = makeDistortionCurve(25);
     source.connect(waveShaper);
     waveShaper.connect(lowpassFilter);
   } else {
@@ -175,7 +205,7 @@ export function playRahtzPluck(
   lowpassFilter.connect(bassFilter);
   bassFilter.connect(bodyResonance);
   bodyResonance.connect(gainNode);
-  gainNode.connect(ctx.destination);
+  gainNode.connect(compressor);
 
   source.start(actualStart);
 }
