@@ -473,61 +473,85 @@ export const AudioToneWidget: React.FC = () => {
 
               {/* 16-Step Interactive Grid Matrix */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                  <span>16-Step Pattern Sequencer Grid:</span>
-                  <span className="text-[10px] font-mono text-amber-400">Step #{drumStep + 1}</span>
-                </label>
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-muted-foreground font-bold">16-Step Sequencer Grid Matrix:</span>
+                  <span className="text-[10px] font-mono text-pink-400 font-bold bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
+                    Step #{drumStep + 1}
+                  </span>
+                </div>
 
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 overflow-x-auto">
-                  {/* Step Header Numbers (1-16) */}
-                  <div className="grid grid-cols-17 gap-1 text-center text-[9px] font-mono text-slate-500">
-                    <span className="col-span-1 text-left font-bold text-slate-400">Inst</span>
-                    {Array.from({ length: 16 }).map((_, i) => (
-                      <span
-                        key={`hdr-step-${i}`}
-                        className={`py-0.5 rounded ${
-                          isDrumsPlaying && drumStep === i ? 'bg-pink-500 text-slate-950 font-bold' : ''
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Instrument Step Rows */}
-                  {DRUM_INSTRUMENT_LABELS.map(inst => {
-                    const rowSteps = drumPattern[inst.id] || Array(16).fill(false);
-
-                    return (
-                      <div key={`seq-row-${inst.id}`} className="grid grid-cols-17 gap-1 items-center">
-                        <span className="col-span-1 text-[10px] font-mono font-bold text-slate-300 truncate" title={inst.name}>
-                          {inst.badge}
+                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 shadow-2xl overflow-x-auto">
+                  <div className="min-w-[400px] space-y-1.5">
+                    {/* Header Row: Instrument Label + 16 Step Header Numbers */}
+                    <div
+                      className="text-center text-[10px] font-mono text-slate-500 pb-1 border-b border-slate-800 flex items-center gap-1"
+                      style={{ display: 'grid', gridTemplateColumns: '46px repeat(16, minmax(0, 1fr))' }}
+                    >
+                      <span className="text-left font-bold text-slate-400">Inst</span>
+                      {Array.from({ length: 16 }).map((_, i) => (
+                        <span
+                          key={`hdr-step-${i}`}
+                          className={`py-0.5 rounded font-bold transition-all ${
+                            i % 4 === 0 ? 'text-slate-300' : 'text-slate-500'
+                          } ${
+                            isDrumsPlaying && drumStep === i
+                              ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-slate-950 font-black shadow-md shadow-pink-500/50 scale-105'
+                              : ''
+                          }`}
+                        >
+                          {i + 1}
                         </span>
+                      ))}
+                    </div>
 
-                        <div className="col-span-16 grid grid-cols-16 gap-1">
+                    {/* 8 Instrument Step Matrix Rows */}
+                    {DRUM_INSTRUMENT_LABELS.map(inst => {
+                      const rowSteps = drumPattern[inst.id] || Array(16).fill(false);
+
+                      return (
+                        <div
+                          key={`seq-row-${inst.id}`}
+                          className="flex items-center gap-1"
+                          style={{ display: 'grid', gridTemplateColumns: '46px repeat(16, minmax(0, 1fr))' }}
+                        >
+                          {/* Left Instrument Pad Badge (Click to audition sound) */}
+                          <button
+                            onClick={() => playDrumSound(inst.id)}
+                            className="h-6 px-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-[10px] font-mono font-extrabold text-slate-200 flex items-center justify-between transition-all active:scale-95 text-left"
+                            title={`Audition ${inst.name}`}
+                          >
+                            <span className="truncate">{inst.badge}</span>
+                            <span className="text-[8px] opacity-60">{inst.icon}</span>
+                          </button>
+
+                          {/* 16 Step Matrix Buttons */}
                           {rowSteps.map((active, stepIdx) => {
                             const isCurrentStep = isDrumsPlaying && drumStep === stepIdx;
+                            const isMeasureStart = stepIdx % 4 === 0;
 
                             return (
                               <button
                                 key={`cell-${inst.id}-${stepIdx}`}
                                 onClick={() => handleToggleDrumStep(inst.id, stepIdx)}
-                                className={`h-5 rounded text-[8px] font-mono transition-all ${
+                                className={`h-6 rounded-md transition-all duration-150 relative border ${
                                   active
                                     ? isCurrentStep
-                                      ? 'bg-amber-400 border border-amber-300 shadow-md shadow-amber-400/50 scale-110 z-10'
-                                      : 'bg-pink-500 hover:bg-pink-400 border border-pink-400/50 shadow-sm'
+                                      ? 'bg-amber-400 border-amber-300 shadow-lg shadow-amber-400/60 scale-110 z-10'
+                                      : 'bg-pink-500 hover:bg-pink-400 border-pink-400/60 shadow-sm shadow-pink-500/20'
                                     : isCurrentStep
-                                    ? 'bg-slate-700 border border-slate-500'
-                                    : 'bg-slate-900 hover:bg-slate-800 border border-slate-800/80'
+                                    ? 'bg-slate-700/80 border-slate-500'
+                                    : isMeasureStart
+                                    ? 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80'
+                                    : 'bg-slate-950 hover:bg-slate-900 border-slate-800/60'
                                 }`}
+                                title={`${inst.name} - Step #${stepIdx + 1} (${active ? 'Active' : 'Off'})`}
                               />
                             );
                           })}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
