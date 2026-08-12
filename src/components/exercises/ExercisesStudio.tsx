@@ -4,6 +4,7 @@ import { TabRenderer } from '../tab/TabRenderer';
 import { Button } from '../ui/button';
 import { Slider } from '../ui/slider';
 import { playPluckedNote, getFrequencyForStringAndFret, getGuitarPreset } from '../../utils/audioSynth';
+import { useGlobalBpm } from '../../utils/globalBpmManager';
 import { Play, Square, RotateCcw, ChevronUp, ChevronDown, ChevronsUpDown, Sparkles, Dumbbell, Music } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
@@ -279,7 +280,7 @@ export const ExercisesStudio: React.FC = () => {
   const [strumProgressionId, setStrumProgressionId] = useState<string>('pop-c-am-f-g');
   const [repeatsPerChord, setRepeatsPerChord] = useState<number>(2);
 
-  const [bpm, setBpm] = useState<number>(80);
+  const [bpm, setBpm] = useGlobalBpm();
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [activeColIndex, setActiveColIndex] = useState<number>(-1);
 

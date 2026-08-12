@@ -3,6 +3,7 @@ import { ChordDefinition } from '../../types/chord';
 import { FretboardNote } from '../../types/scale';
 import { PRESET_CHORDS } from '../chord/ChordLibrary';
 import { strumChord, playPluckedNote, getGuitarPreset } from '../../utils/audioSynth';
+import { useGlobalBpm } from '../../utils/globalBpmManager';
 import { ChordDiagram } from '../chord/ChordDiagram';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -35,7 +36,7 @@ export const UnifiedGuitarSequencer: React.FC<UnifiedGuitarSequencerProps> = ({ 
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [activeStepIndex, setActiveStepIndex] = useState<number>(-1);
-  const [bpm, setBpm] = useState<number>(110);
+  const [bpm, setBpm] = useGlobalBpm();
   const [isLooping, setIsLooping] = useState<boolean>(true);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);

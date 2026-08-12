@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GuitarPreset, setGuitarPreset, getGuitarPreset, subscribeGuitarPreset, playPluckedNote, strumChord, getFrequencyForStringAndFret, GuitarToneParams, getGuitarToneParams, setGuitarToneParams, subscribeGuitarToneParams } from '../../utils/audioSynth';
 import { MetronomeState, getMetronomeState, toggleMetronome, setMetronomeBpm, setBeatsPerMeasure, handleTapTempo, subscribeMetronome } from '../../utils/metronomeEngine';
 import { DrumInstrument, PRESET_DRUM_BEATS, playDrumSound, startDrumMachine, stopDrumMachine, toggleDrumMachine, setDrumBpm, getDrumBpm, isDrumMachinePlaying, setActiveDrumPattern, getActiveDrumPattern, subscribeDrumMachine } from '../../utils/drumMachineEngine';
+import { setGlobalBpm, useGlobalBpm } from '../../utils/globalBpmManager';
 import { Button } from '../ui/button';
 import { Slider } from '../ui/slider';
 import { Switch } from '../ui/switch';
@@ -36,12 +37,14 @@ export const AudioToneWidget: React.FC = () => {
   const [strumSpeed, setStrumSpeed] = useState<number>(35);
   const [isPlayingStrum, setIsPlayingStrum] = useState<boolean>(false);
 
+  // Master Global BPM State
+  const [bpm, setBpm] = useGlobalBpm();
+
   // Metronome State
   const [metronomeState, setMetronomeState] = useState<MetronomeState>(getMetronomeState());
 
   // Drum Machine State
   const [isDrumsPlaying, setIsDrumsPlaying] = useState<boolean>(isDrumMachinePlaying());
-  const [drumBpm, setDrumBpmState] = useState<number>(getDrumBpm());
   const [drumStep, setDrumStep] = useState<number>(0);
   const [drumPattern, setDrumPatternState] = useState(getActiveDrumPattern());
   const [selectedPresetBeatId, setSelectedPresetBeatId] = useState<string>(PRESET_DRUM_BEATS[0].id);
@@ -91,8 +94,7 @@ export const AudioToneWidget: React.FC = () => {
       setSelectedPresetBeatId(beatId);
       setActiveDrumPattern(preset.pattern);
       setDrumPatternState({ ...preset.pattern });
-      setDrumBpm(preset.bpm);
-      setDrumBpmState(preset.bpm);
+      setBpm(preset.bpm);
     }
   };
 
@@ -105,8 +107,7 @@ export const AudioToneWidget: React.FC = () => {
   };
 
   const handleDrumBpmChange = (newBpm: number) => {
-    setDrumBpm(newBpm);
-    setDrumBpmState(newBpm);
+    setBpm(newBpm);
   };
 
   return (
@@ -365,11 +366,11 @@ export const AudioToneWidget: React.FC = () => {
               <div className="space-y-2 p-3 rounded-xl bg-muted/40 border border-border/40">
                 <div className="flex justify-between text-xs text-muted-foreground font-semibold">
                   <span>Tempo Speed</span>
-                  <span className="font-mono text-primary font-bold">{metronomeState.bpm} BPM</span>
+                  <span className="font-mono text-primary font-bold">{bpm} BPM</span>
                 </div>
                 <Slider
-                  value={[metronomeState.bpm]}
-                  onValueChange={vals => setMetronomeBpm(vals[0])}
+                  value={[bpm]}
+                  onValueChange={vals => setBpm(vals[0])}
                   min={30}
                   max={240}
                   step={1}
@@ -402,7 +403,7 @@ export const AudioToneWidget: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
                   <span>Load Preset Drum Groove:</span>
-                  <span className="text-[10px] font-mono text-primary">{drumBpm} BPM</span>
+                  <span className="text-[10px] font-mono text-primary">{bpm} BPM</span>
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {PRESET_DRUM_BEATS.map(preset => (
@@ -439,10 +440,10 @@ export const AudioToneWidget: React.FC = () => {
                 <div className="w-1/2 space-y-1">
                   <div className="flex justify-between text-[10px] font-semibold text-muted-foreground">
                     <span>Tempo</span>
-                    <span className="font-mono text-pink-400">{drumBpm} BPM</span>
+                    <span className="font-mono text-pink-400">{bpm} BPM</span>
                   </div>
                   <Slider
-                    value={[drumBpm]}
+                    value={[bpm]}
                     onValueChange={vals => handleDrumBpmChange(vals[0])}
                     min={50}
                     max={200}
@@ -572,7 +573,7 @@ export const AudioToneWidget: React.FC = () => {
           <Volume2 className="h-5 w-5" />
         )}
         <span className="text-xs font-extrabold uppercase tracking-wider hidden sm:inline">
-          {isDrumsPlaying ? `${drumBpm} BPM Drums` : metronomeState.isPlaying ? `${metronomeState.bpm} BPM` : 'Tone, Tempo & Drums'}
+          {isDrumsPlaying ? `${bpm} BPM Drums` : metronomeState.isPlaying ? `${bpm} BPM` : 'Tone, Tempo & Drums'}
         </span>
         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 font-mono capitalize">
           {isDrumsPlaying ? 'Groove' : metronomeState.isPlaying ? 'Tempo' : selectedPreset.split('-')[0]}

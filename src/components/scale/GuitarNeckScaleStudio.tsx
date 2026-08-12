@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SCALE_DEFINITIONS, NOTES_CHROMATIC, generateFretboardScale, getScaleNotes } from '../../utils/scaleEngine';
 import { FretboardNote, ScaleProgressionStep } from '../../types/scale';
 import { playPluckedNote, getGuitarPreset } from '../../utils/audioSynth';
+import { useGlobalBpm } from '../../utils/globalBpmManager';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
@@ -93,7 +94,7 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
   const [isPlayingSeq, setIsPlayingSeq] = useState<boolean>(false);
   const [activeStepIndex, setActiveStepIndex] = useState<number>(-1);
   const [activePlayingFretKey, setActivePlayingFretKey] = useState<string | null>(null);
-  const [bpm, setBpm] = useState<number>(120);
+  const [bpm, setBpm] = useGlobalBpm();
 
   // Slide Rule State
   const [slideRuleTab, setSlideRuleTab] = useState<'diatonic' | 'harmonic' | 'chords'>('diatonic');
