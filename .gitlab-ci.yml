@@ -1,0 +1,24 @@
+# GitLab CI/CD Pipeline for Deploying Vite React SPA to GitLab Pages
+image: node:20-alpine
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+pages:
+  stage: deploy
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run build
+    - rm -rf public
+    - mv dist public
+    # Create 404.html fallback pointing to index.html for SPA client-side routing
+    - cp public/index.html public/404.html
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
