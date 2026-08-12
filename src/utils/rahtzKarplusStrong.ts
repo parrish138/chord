@@ -33,15 +33,17 @@ function getAudioContext(): AudioContext {
 
 function getMasterLimiterBus(ctx: AudioContext): { masterHeadroom: GainNode; masterLimiter: DynamicsCompressorNode } {
   if (!masterHeadroomGain || masterHeadroomGain.context !== ctx) {
+    // Master Headroom gain (0.95 scales guitar voices to match drum machine amplitude)
     masterHeadroomGain = ctx.createGain();
-    masterHeadroomGain.gain.setValueAtTime(0.55, ctx.currentTime);
+    masterHeadroomGain.gain.setValueAtTime(0.95, ctx.currentTime);
 
+    // Dynamic RMS Equalizer & Peak Compressor (-8dB threshold, ratio 4:1, soft knee 6dB)
     masterLimiterCompressor = ctx.createDynamicsCompressor();
-    masterLimiterCompressor.threshold.setValueAtTime(-2.0, ctx.currentTime);
-    masterLimiterCompressor.knee.setValueAtTime(0.0, ctx.currentTime);
-    masterLimiterCompressor.ratio.setValueAtTime(20.0, ctx.currentTime);
-    masterLimiterCompressor.attack.setValueAtTime(0.001, ctx.currentTime);
-    masterLimiterCompressor.release.setValueAtTime(0.040, ctx.currentTime);
+    masterLimiterCompressor.threshold.setValueAtTime(-8.0, ctx.currentTime);
+    masterLimiterCompressor.knee.setValueAtTime(6.0, ctx.currentTime);
+    masterLimiterCompressor.ratio.setValueAtTime(4.0, ctx.currentTime);
+    masterLimiterCompressor.attack.setValueAtTime(0.003, ctx.currentTime);
+    masterLimiterCompressor.release.setValueAtTime(0.080, ctx.currentTime);
 
     masterOutputGain = ctx.createGain();
     masterOutputGain.gain.setValueAtTime(1.0, ctx.currentTime);
@@ -51,11 +53,11 @@ function getMasterLimiterBus(ctx: AudioContext): { masterHeadroom: GainNode; mas
     masterOutputGain.connect(ctx.destination);
   }
 
-  // Update dynamic master output volume based on user volume slider
+  // Dynamic master output gain scaling (vol * 2.2 matches drum machine peak dB)
   const activeParams = getGuitarToneParams();
   const vol = activeParams.volume !== undefined ? activeParams.volume : 1.0;
   if (masterOutputGain) {
-    masterOutputGain.gain.setValueAtTime(vol * 1.35, ctx.currentTime);
+    masterOutputGain.gain.setValueAtTime(vol * 2.2, ctx.currentTime);
   }
 
   return { masterHeadroom: masterHeadroomGain, masterLimiter: masterLimiterCompressor! };
@@ -311,7 +313,7 @@ export function playRahtzPluck(
     const panPos = ((stringNum - 3.5) / 2.5) * 0.35; // -0.35 left (Low E) to +0.35 right (High E)
 
     const voiceGainNode = ctx.createGain();
-    const voiceVolume = (0.32 / detunes.length) * volume;
+    const voiceVolume = (0.75 / detunes.length) * volume;
     voiceGainNode.gain.setValueAtTime(voiceVolume, actualStart);
 
     if (panner) {
