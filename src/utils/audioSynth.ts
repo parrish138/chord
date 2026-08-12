@@ -3,6 +3,12 @@ import { playRahtzPluck } from './rahtzKarplusStrong';
 
 export type GuitarPreset = 'acoustic' | 'nylon' | 'electric-clean' | 'overdrive';
 
+export interface GuitarToneParams {
+  sustain: number;    // 1 to 10 (default 5)
+  reverb: number;     // 0 to 100 (% wet mix level)
+  brightness: number; // 1000 to 8000 (Hz lowpass cutoff)
+}
+
 // Standard guitar string base pitches (string 6 to string 1)
 const STANDARD_OPEN_FREQUENCIES: Record<number, number> = {
   6: 82.41,  // E2 (Low E)
@@ -16,11 +22,23 @@ const STANDARD_OPEN_FREQUENCIES: Record<number, number> = {
 let audioCtx: AudioContext | null = null;
 let currentPreset: GuitarPreset = 'acoustic';
 
+let currentToneParams: GuitarToneParams = {
+  sustain: 5,
+  reverb: 25,
+  brightness: 3600,
+};
+
 const presetListeners = new Set<(preset: GuitarPreset) => void>();
+const toneParamsListeners = new Set<(params: GuitarToneParams) => void>();
 
 export function setGuitarPreset(preset: GuitarPreset): void {
   currentPreset = preset;
+  // Set default preset brightness
+  const defaultBrightness = preset === 'nylon' ? 2600 : preset === 'electric-clean' ? 5200 : preset === 'overdrive' ? 3200 : 3600;
+  currentToneParams.brightness = defaultBrightness;
+
   presetListeners.forEach(listener => listener(preset));
+  toneParamsListeners.forEach(listener => listener(currentToneParams));
 }
 
 export function getGuitarPreset(): GuitarPreset {
@@ -31,6 +49,22 @@ export function subscribeGuitarPreset(listener: (preset: GuitarPreset) => void):
   presetListeners.add(listener);
   return () => {
     presetListeners.delete(listener);
+  };
+}
+
+export function setGuitarToneParams(params: Partial<GuitarToneParams>): void {
+  currentToneParams = { ...currentToneParams, ...params };
+  toneParamsListeners.forEach(listener => listener(currentToneParams));
+}
+
+export function getGuitarToneParams(): GuitarToneParams {
+  return currentToneParams;
+}
+
+export function subscribeGuitarToneParams(listener: (params: GuitarToneParams) => void): () => void {
+  toneParamsListeners.add(listener);
+  return () => {
+    toneParamsListeners.delete(listener);
   };
 }
 
@@ -54,7 +88,7 @@ export function getFrequencyForStringAndFret(stringNum: number, fret: number): n
 }
 
 /**
- * Play a warm, physically modeled plucked guitar string note
+ * Play a warm, physically modeled plucked guitar string note with custom tone settings
  */
 export function playPluckedNote(
   freq: number, 
@@ -62,9 +96,10 @@ export function playPluckedNote(
   duration: number = 2.6, 
   volume: number = 0.45,
   stringNum: number = 3,
-  preset: GuitarPreset = currentPreset
+  preset: GuitarPreset = currentPreset,
+  customParams?: Partial<GuitarToneParams>
 ): void {
-  playRahtzPluck(freq, startTime, duration, volume, stringNum, preset);
+  playRahtzPluck(freq, startTime, duration, volume, stringNum, preset, customParams);
 }
 
 /**
@@ -74,7 +109,8 @@ export function strumChord(
   chord: ChordDefinition, 
   direction: 'down' | 'up' = 'down', 
   strumSpeedMs: number = 35,
-  preset: GuitarPreset = currentPreset
+  preset: GuitarPreset = currentPreset,
+  customParams?: Partial<GuitarToneParams>
 ): void {
   const ctx = getAudioContext();
   if (ctx.state === 'suspended') {
@@ -113,7 +149,6 @@ export function strumChord(
   const delaySec = strumSpeedMs / 1000;
   stringNotes.forEach((item, index) => {
     const freq = getFrequencyForStringAndFret(item.stringNum, item.fret);
-    // Pass relative offset delay in seconds for staggered strum
-    playPluckedNote(freq, index * delaySec, 2.6, 0.45, item.stringNum, preset);
+    playPluckedNote(freq, index * delaySec, 2.6, 0.45, item.stringNum, preset, customParams);
   });
 }

@@ -1,7 +1,9 @@
+import { GuitarToneParams, getGuitarToneParams } from './audioSynth';
+
 /**
  * Rahtz Karplus-Strong Physical String Synthesis Engine
  * Refined guitar DSP physics with in-loop loss filtering, filtered excitation bursts,
- * tuned damping coefficients, and a master dynamics compressor.
+ * customizable sustain damping, stereo room reverb convolver, and master dynamics compression.
  */
 
 export interface RahtzKSOptions {
@@ -20,6 +22,7 @@ export const DEFAULT_RAHTZ_OPTIONS: RahtzKSOptions = {
 
 let audioCtx: AudioContext | null = null;
 let masterCompressor: DynamicsCompressorNode | null = null;
+let reverbConvolver: ConvolverNode | null = null;
 
 function getAudioContext(): AudioContext {
   if (!audioCtx) {
@@ -45,6 +48,32 @@ function getMasterCompressor(ctx: AudioContext): DynamicsCompressorNode {
   return masterCompressor;
 }
 
+/**
+ * Creates synthetic stereo room acoustic impulse response
+ */
+function getReverbConvolver(ctx: AudioContext): ConvolverNode {
+  if (!reverbConvolver || reverbConvolver.context !== ctx) {
+    reverbConvolver = ctx.createConvolver();
+    const duration = 1.6;
+    const decay = 2.2;
+    const sampleRate = ctx.sampleRate;
+    const length = sampleRate * duration;
+    const impulse = ctx.createBuffer(2, length, sampleRate);
+    const left = impulse.getChannelData(0);
+    const right = impulse.getChannelData(1);
+
+    for (let i = 0; i < length; i++) {
+      const t = i / length;
+      const factor = Math.exp(-t * decay);
+      left[i] = (Math.random() * 2 - 1) * factor;
+      right[i] = (Math.random() * 2 - 1) * factor;
+    }
+
+    reverbConvolver.buffer = impulse;
+  }
+  return reverbConvolver;
+}
+
 function makeDistortionCurve(amount: number = 25): Float32Array {
   const n_samples = 44100;
   const curve = new Float32Array(n_samples);
@@ -65,12 +94,19 @@ export function playRahtzPluck(
   duration: number = 2.8,
   volume: number = 0.45,
   stringNum: number = 3,
-  preset: string = 'acoustic'
+  preset: string = 'acoustic',
+  customParams?: Partial<GuitarToneParams>
 ): void {
   const ctx = getAudioContext();
   if (ctx.state === 'suspended') {
     ctx.resume();
   }
+
+  // Active tone params (merge default tone params with any custom overrides)
+  const activeParams: GuitarToneParams = {
+    ...getGuitarToneParams(),
+    ...customParams,
+  };
 
   // Safe WebAudio start time calculation for staggered strumming
   let actualStart = ctx.currentTime;
@@ -112,23 +148,22 @@ export function playRahtzPluck(
     delayLine[i] = filteredNoise * envelope * (isLowString ? 0.28 : 0.32);
   }
 
-  // 3. Tuned Damping Coefficients per preset
+  // 3. Tuned Damping & Sustain Coefficients (sustain ranges 1 to 10)
+  const sustainOffset = (activeParams.sustain - 5) * 0.0025;
   const baseDamping =
     preset === 'nylon' ? 0.965 :
-      preset === 'electric-clean' ? 0.980 :
-        preset === 'overdrive' ? 0.975 :
-          0.975; // acoustic
+    preset === 'electric-clean' ? 0.980 :
+    preset === 'overdrive' ? 0.975 :
+    0.975; // acoustic
 
-  const damping =
-    isLowString
-      ? Math.min(0.985, baseDamping + 0.003)
-      : baseDamping;
+  const damping = Math.min(0.994, Math.max(0.920, baseDamping + sustainOffset + (isLowString ? 0.003 : 0)));
+
   // In-loop loss filter coefficient (frequency-dependent loss inside string feedback loop)
   const lossCoeff =
     preset === 'nylon' ? 0.30 :
-      preset === 'electric-clean' ? 0.45 :
-        preset === 'overdrive' ? 0.40 :
-          0.36;
+    preset === 'electric-clean' ? 0.45 :
+    preset === 'overdrive' ? 0.40 :
+    0.36;
 
   let readPtr = 0;
   let loopPrev = 0;
@@ -137,16 +172,13 @@ export function playRahtzPluck(
   for (let i = 0; i < totalSamples; i++) {
     const idx0 = readPtr;
     const idx1 = (readPtr + 1) % N;
+
     // Linear fractional interpolation on read side
-    const currentSample =
-      delayLine[idx0] * (1 - frac) +
-      delayLine[idx1] * frac;
+    const currentSample = delayLine[idx0] * (1 - frac) + delayLine[idx1] * frac;
     synthesis[i] = currentSample;
 
     // 1-pole lowpass feedback loss filter: H(z) = (1 - S) + S * z^-1
-    const filtered =
-      (lossCoeff * currentSample +
-        (1 - lossCoeff) * loopPrev) * damping;
+    const filtered = (lossCoeff * currentSample + (1 - lossCoeff) * loopPrev) * damping;
     loopPrev = currentSample;
 
     delayLine[readPtr] = filtered;
@@ -172,15 +204,11 @@ export function playRahtzPluck(
     rightChannel[i] = synthesis[i] * gainR;
   }
 
-  // 6. Audio Buffer & Output Filters
+  // 6. Audio Buffer & Output Cabinet Filters
   const source = ctx.createBufferSource();
   source.buffer = buffer;
 
-  const cutoffHz =
-    preset === 'nylon' ? 2600 :
-      preset === 'electric-clean' ? 5000 :
-        preset === 'overdrive' ? 3000 :
-          3200; // acoustic (lowered to 3.2kHz for natural warmth)
+  const cutoffHz = activeParams.brightness;
 
   const lowpassFilter = ctx.createBiquadFilter();
   lowpassFilter.type = 'lowpass';
@@ -214,7 +242,21 @@ export function playRahtzPluck(
   lowpassFilter.connect(bassFilter);
   bassFilter.connect(bodyResonance);
   bodyResonance.connect(gainNode);
+
+  // Direct dry signal to compressor
   gainNode.connect(compressor);
+
+  // Wet Reverb Convolver Node
+  if (activeParams.reverb > 0) {
+    const convolver = getReverbConvolver(ctx);
+    const wetGain = ctx.createGain();
+    const wetLevel = (activeParams.reverb / 100) * 0.35;
+    wetGain.gain.setValueAtTime(wetLevel, actualStart);
+
+    gainNode.connect(convolver);
+    convolver.connect(wetGain);
+    wetGain.connect(compressor);
+  }
 
   source.start(actualStart);
 }

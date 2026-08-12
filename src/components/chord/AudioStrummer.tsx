@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChordDefinition } from '../../types/chord';
-import { strumChord, playPluckedNote, getFrequencyForStringAndFret, GuitarPreset, setGuitarPreset, getGuitarPreset, subscribeGuitarPreset } from '../../utils/audioSynth';
+import { strumChord, playPluckedNote, getFrequencyForStringAndFret, GuitarPreset, setGuitarPreset, getGuitarPreset, subscribeGuitarPreset, GuitarToneParams, getGuitarToneParams, setGuitarToneParams, subscribeGuitarToneParams } from '../../utils/audioSynth';
 import { Button } from '../ui/button';
-import { Volume2, Music, ArrowDown, ArrowUp, Zap, Sparkles } from 'lucide-react';
+import { Volume2, Music, ArrowDown, ArrowUp, Zap, Sparkles, Sliders, Waves, SunMedium } from 'lucide-react';
 import { Slider } from '../ui/slider';
 
 export interface AudioStrummerProps {
@@ -21,18 +21,29 @@ export const AudioStrummer: React.FC<AudioStrummerProps> = ({ chord, className }
   const [strumSpeed, setStrumSpeed] = useState<number>(35);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [selectedPreset, setSelectedPresetState] = useState<GuitarPreset>(getGuitarPreset());
+  const [toneParams, setToneParamsState] = useState<GuitarToneParams>(getGuitarToneParams());
 
-  // Subscribe to global tone preset changes so all UI widgets stay in sync
+  // Subscribe to global tone preset & parameters
   useEffect(() => {
-    const unsubscribe = subscribeGuitarPreset(newPreset => {
+    const unsubPreset = subscribeGuitarPreset(newPreset => {
       setSelectedPresetState(newPreset);
     });
-    return unsubscribe;
+    const unsubParams = subscribeGuitarToneParams(newParams => {
+      setToneParamsState({ ...newParams });
+    });
+    return () => {
+      unsubPreset();
+      unsubParams();
+    };
   }, []);
 
   const handlePresetSelect = (preset: GuitarPreset) => {
     setSelectedPresetState(preset);
     setGuitarPreset(preset);
+  };
+
+  const handleToneParamChange = (key: keyof GuitarToneParams, value: number) => {
+    setGuitarToneParams({ [key]: value });
   };
 
   const handleStrum = (direction: 'down' | 'up') => {
@@ -87,6 +98,62 @@ export const AudioStrummer: React.FC<AudioStrummerProps> = ({ chord, className }
               <p className="text-[10px] opacity-75 line-clamp-1">{opt.desc}</p>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Tone Tweaker Sliders (Sustain, Reverb, Brightness) */}
+      <div className="p-3 rounded-xl bg-muted/40 border border-border/40 space-y-3">
+        <div className="flex items-center justify-between text-xs font-bold text-primary">
+          <span className="flex items-center gap-1">
+            <Sliders className="h-3.5 w-3.5" /> Tone Controls & FX
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* 1. Sustain */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400" /> Sustain</span>
+              <span className="font-mono font-bold text-foreground">{toneParams.sustain}/10</span>
+            </div>
+            <Slider
+              value={[toneParams.sustain]}
+              onValueChange={vals => handleToneParamChange('sustain', vals[0])}
+              min={1}
+              max={10}
+              step={1}
+            />
+          </div>
+
+          {/* 2. Reverb */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><Waves className="h-3 w-3 text-blue-400" /> Reverb</span>
+              <span className="font-mono font-bold text-foreground">{toneParams.reverb}%</span>
+            </div>
+            <Slider
+              value={[toneParams.reverb]}
+              onValueChange={vals => handleToneParamChange('reverb', vals[0])}
+              min={0}
+              max={100}
+              step={5}
+            />
+          </div>
+
+          {/* 3. Brightness */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><SunMedium className="h-3 w-3 text-yellow-400" /> Brightness</span>
+              <span className="font-mono font-bold text-foreground">{toneParams.brightness} Hz</span>
+            </div>
+            <Slider
+              value={[toneParams.brightness]}
+              onValueChange={vals => handleToneParamChange('brightness', vals[0])}
+              min={1200}
+              max={8000}
+              step={200}
+            />
+          </div>
         </div>
       </div>
 
