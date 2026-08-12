@@ -5,6 +5,7 @@ import { ChordLibrary, PRESET_CHORDS } from './components/chord/ChordLibrary';
 import { ChordSongbook } from './components/chord/ChordSongbook';
 import { CAGEDMatrix } from './components/chord/CAGEDMatrix';
 import { TabEditor } from './components/tab/TabEditor';
+import { ExercisesStudio } from './components/exercises/ExercisesStudio';
 import { NashvilleStudio } from './components/nashville/NashvilleStudio';
 import { GuitarNeckScaleStudio } from './components/scale/GuitarNeckScaleStudio';
 import { ChordTheoryCard } from './components/chord/ChordTheoryCard';
@@ -13,10 +14,10 @@ import { AudioToneWidget } from './components/audio/AudioToneWidget';
 import { ChordDefinition } from './types/chord';
 import { Button } from './components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
-import { Music2, Sliders, Library, BookOpen, Download, Sun, Moon, Sparkles, Code2, Layers, Music, Hash, GitCommit, LayoutGrid } from 'lucide-react';
+import { Music2, Sliders, Library, BookOpen, Download, Sun, Moon, Sparkles, Code2, Layers, Music, Hash, GitCommit, LayoutGrid, Dumbbell } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'canvas' | 'scale-neck' | 'nashville' | 'caged' | 'tab' | 'designer' | 'library' | 'songbook' | 'docs'>('canvas');
+  const [activeTab, setActiveTab] = useState<'canvas' | 'scale-neck' | 'nashville' | 'caged' | 'tab' | 'exercises' | 'designer' | 'library' | 'songbook' | 'docs'>('canvas');
   const [currentChord, setCurrentChord] = useState<ChordDefinition>(PRESET_CHORDS[0]); // C Major
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -102,7 +103,7 @@ export function App() {
         {/* Primary Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} className="w-full">
           <div className="flex justify-center">
-            <TabsList className="grid grid-cols-4 sm:grid-cols-9 w-full max-w-6xl">
+            <TabsList className="grid grid-cols-5 sm:grid-cols-10 w-full max-w-6xl">
               <TabsTrigger value="canvas" className="gap-1.5 text-xs font-extrabold text-primary">
                 <LayoutGrid className="h-4 w-4 text-pink-400" />
                 <span>Canvas</span>
@@ -122,6 +123,10 @@ export function App() {
               <TabsTrigger value="tab" className="gap-1.5 text-xs">
                 <Music className="h-4 w-4" />
                 <span>Tablature</span>
+              </TabsTrigger>
+              <TabsTrigger value="exercises" className="gap-1.5 text-xs">
+                <Dumbbell className="h-4 w-4" />
+                <span>Exercises</span>
               </TabsTrigger>
               <TabsTrigger value="designer" className="gap-1.5 text-xs">
                 <Sliders className="h-4 w-4" />
@@ -165,6 +170,11 @@ export function App() {
           {/* Tab 4: Tablature Studio */}
           <TabsContent value="tab" className="pt-6">
             <TabEditor />
+          </TabsContent>
+
+          {/* Tab 5: Exercises */}
+          <TabsContent value="exercises" className="pt-6">
+            <ExercisesStudio />
           </TabsContent>
 
           {/* Tab 5: Designer */}
