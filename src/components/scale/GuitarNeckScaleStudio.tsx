@@ -110,6 +110,25 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
     });
   };
 
+  // Scale Box Position Filters (Positions 1, 2, 3, 4, 5)
+  const [activePositions, setActivePositions] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+
+  const togglePositionFilter = (pos: number) => {
+    setActivePositions(prev => {
+      const next = new Set(prev);
+      if (next.has(pos)) {
+        if (next.size > 1) next.delete(pos);
+      } else {
+        next.add(pos);
+      }
+      return next;
+    });
+  };
+
+  const selectAllPositions = () => {
+    setActivePositions(new Set([1, 2, 3, 4, 5]));
+  };
+
   // Slide Rule State
   const [slideRuleTab, setSlideRuleTab] = useState<'diatonic' | 'harmonic' | 'chords'>('diatonic');
   const [isPlayingArpeggio, setIsPlayingArpeggio] = useState<boolean>(false);
@@ -533,6 +552,45 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
           </div>
         </div>
 
+        {/* Scale Box Position Filter Bar (Positions 1, 2, 3, 4, 5) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/70 p-3 rounded-xl border border-border/40 text-xs shadow-inner">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-purple-400" />
+            <span className="font-bold text-foreground">Fretboard Scale Box Positions:</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 font-mono">
+            <button
+              onClick={selectAllPositions}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                activePositions.size === 5
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 border-amber-300 font-extrabold shadow-sm'
+                  : 'bg-stone-900/80 text-stone-400 border-stone-800 hover:text-stone-200'
+              }`}
+            >
+              All Positions
+            </button>
+
+            {[1, 2, 3, 4, 5].map(posNum => {
+              const active = activePositions.has(posNum);
+              return (
+                <button
+                  key={`pos-filter-${posNum}`}
+                  onClick={() => togglePositionFilter(posNum)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                    active
+                      ? 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400/80 shadow-sm'
+                      : 'bg-stone-900/80 text-stone-500 border-stone-800 opacity-40 line-through'
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${active ? 'bg-white' : 'bg-stone-600'}`} />
+                  <span>Position {posNum}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Horizontal Fretboard Canvas Scroll Container (25 Columns for Frets 0 to 24) */}
         <div className="overflow-x-auto pb-4">
           <div className="min-w-[1200px] relative bg-stone-900 rounded-xl p-5 border border-stone-800 shadow-2xl">
@@ -596,9 +654,14 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                               const role = matchingNote.noteRole || 'colour';
                               const interval = matchingNote.interval;
                               const isTensionInterval = ['4', 'b2', 'b5', '#4', '#5', 'b6'].includes(interval);
+                              const posNum = matchingNote.position || 1;
+                              const isPosActive = activePositions.has(posNum);
 
-                              // Evaluate active visibility for all note role categories
+                              // Evaluate active visibility for all note role & position categories
                               let isRoleActive = activeRoleFilters.has(role);
+                              if (!isPosActive) {
+                                isRoleActive = false;
+                              }
                               if (isTensionInterval && !activeRoleFilters.has('tension')) {
                                 isRoleActive = false;
                               }

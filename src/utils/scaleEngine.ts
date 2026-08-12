@@ -378,6 +378,22 @@ export function getNoteRoleInContext(scaleId: string, interval: string): NoteRol
 }
 
 /**
+ * Calculates scale box position (1 to 5) for a given fretboard note.
+ */
+export function calculateFretboardPosition(rootNote: string, fret: number): number {
+  const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
+  const lowEIdx = NOTES_CHROMATIC.indexOf('E');
+  const rootFretLowE = (rootIdx - lowEIdx + 12) % 12;
+  const relFret = (fret - rootFretLowE + 24) % 12;
+
+  if (relFret >= 0 && relFret <= 2) return 1;
+  if (relFret >= 2 && relFret <= 4) return 2;
+  if (relFret >= 4 && relFret <= 7) return 3;
+  if (relFret >= 7 && relFret <= 9) return 4;
+  return 5;
+}
+
+/**
  * Maps scale notes across the entire 6-string 24-fret guitar fretboard
  */
 export function generateFretboardScale(
@@ -403,6 +419,7 @@ export function generateFretboardScale(
       const interval = matchingScaleItem ? matchingScaleItem.interval : (INTERVAL_LABELS_MAP[noteSemis] || '1');
       const isRoot = noteSemis === 0;
       const noteRole = getNoteRoleInContext(scaleId, interval);
+      const position = calculateFretboardPosition(rootNote, f);
 
       if (isMatch || includeOffScaleNotes) {
         fretboardNotes.push({
@@ -416,6 +433,7 @@ export function generateFretboardScale(
           isScaleNote: isMatch,
           isEnabled: isMatch || scaleId === 'all-notes',
           noteRole,
+          position,
         });
       }
     }

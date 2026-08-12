@@ -29,6 +29,7 @@ export interface FretboardNote {
   isScaleNote?: boolean;
   isEnabled: boolean;
   noteRole?: NoteRole;
+  position?: number; // Box position (1, 2, 3, 4, 5)
 }
 
 export interface ScaleProgressionStep {
