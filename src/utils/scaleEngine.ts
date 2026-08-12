@@ -86,14 +86,62 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     description: 'Diminished mode with flat 2nd and flat 5th. Unstable & dissonant.',
   },
 
-  // --- Non-Diatonic Scales ---
+  // --- Non-Diatonic & Harmonic Minor Modes (Musical Slide Rule) ---
   {
     id: 'harmonic-minor',
-    name: 'Harmonic Minor',
+    name: 'Harmonic Minor (Aeolian Maj7)',
     category: 'non-diatonic',
     intervals: [0, 2, 3, 5, 7, 8, 11],
     intervalNames: ['1', '2', 'b3', '4', '5', 'b6', '7'],
-    description: 'Minor scale with a raised natural 7th leading tone. Classical & Neoclassical.',
+    description: '1st mode of Harmonic Minor. Minor scale with a raised 7th leading tone.',
+  },
+  {
+    id: 'locrian-sharp-6',
+    name: 'Locrian #6 (Half Diminished)',
+    category: 'non-diatonic',
+    intervals: [0, 1, 3, 5, 6, 9, 10],
+    intervalNames: ['1', 'b2', 'b3', '4', 'b5', '6', 'b7'],
+    description: '2nd mode of Harmonic Minor. Diminished 5th with a natural 6th.',
+  },
+  {
+    id: 'ionian-sharp-5',
+    name: 'Ionian #5 (Augmented)',
+    category: 'non-diatonic',
+    intervals: [0, 2, 4, 5, 8, 9, 11],
+    intervalNames: ['1', '2', '3', '4', '#5', '6', '7'],
+    description: '3rd mode of Harmonic Minor. Major 3rd with an augmented 5th.',
+  },
+  {
+    id: 'dorian-sharp-4',
+    name: 'Dorian #4 (Romanian / Minor)',
+    category: 'non-diatonic',
+    intervals: [0, 2, 3, 6, 7, 9, 10],
+    intervalNames: ['1', '2', 'b3', '#4', '5', '6', 'b7'],
+    description: '4th mode of Harmonic Minor. Dorian minor with a tritone #4. Folk & Eastern.',
+  },
+  {
+    id: 'phrygian-dominant',
+    name: 'Phrygian Major (Spanish Gypsy)',
+    category: 'non-diatonic',
+    intervals: [0, 1, 4, 5, 7, 8, 10],
+    intervalNames: ['1', 'b2', '3', '4', '5', 'b6', 'b7'],
+    description: '5th mode of Harmonic Minor. Major 3rd with flat 2nd and flat 6th.',
+  },
+  {
+    id: 'lydian-sharp-2',
+    name: 'Lydian #2',
+    category: 'non-diatonic',
+    intervals: [0, 3, 4, 6, 7, 9, 11],
+    intervalNames: ['1', '#2', '3', '#4', '5', '6', '7'],
+    description: '6th mode of Harmonic Minor. Lydian major with a raised #2 step.',
+  },
+  {
+    id: 'ultralocrian',
+    name: 'Ultralocrian (Diminished 7)',
+    category: 'non-diatonic',
+    intervals: [0, 1, 3, 4, 6, 8, 9],
+    intervalNames: ['1', 'b2', 'b3', 'b4', 'b5', 'b6', 'bb7'],
+    description: '7th mode of Harmonic Minor. Fully diminished 7th mode.',
   },
   {
     id: 'melodic-minor',
@@ -102,14 +150,6 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     intervals: [0, 2, 3, 5, 7, 9, 11],
     intervalNames: ['1', '2', 'b3', '4', '5', '6', '7'],
     description: 'Minor 3rd with major 6th and 7th. Essential for Modern Jazz.',
-  },
-  {
-    id: 'phrygian-dominant',
-    name: 'Phrygian Dominant (Spanish)',
-    category: 'non-diatonic',
-    intervals: [0, 1, 4, 5, 7, 8, 10],
-    intervalNames: ['1', 'b2', '3', '4', '5', 'b6', 'b7'],
-    description: '5th mode of Harmonic Minor. Exotic Spanish Flamenco & Middle Eastern tone.',
   },
   {
     id: 'hungarian-minor',
@@ -146,14 +186,22 @@ export const SCALE_DEFINITIONS: ScaleDefinition[] = [
     description: 'Minor Pentatonic plus the chromatic "blue note" (b5 tritone).',
   },
 
-  // --- Exotic Scales ---
+  // --- Exotic & Symmetrical Scales (Slide Rule) ---
   {
     id: 'whole-tone',
-    name: 'Whole Tone Scale',
+    name: 'Whole Tone Scale (Augmented)',
     category: 'exotic',
     intervals: [0, 2, 4, 6, 8, 10],
     intervalNames: ['1', '2', '3', '#4', '#5', 'b7'],
     description: 'Symmetrical 6-note scale composed entirely of whole steps. Floating & mysterious.',
+  },
+  {
+    id: 'diminished-symmetrical',
+    name: 'Diminished Symmetrical (Full Dim)',
+    category: 'exotic',
+    intervals: [0, 1, 3, 4, 6, 7, 9, 10],
+    intervalNames: ['1', 'b2', 'b3', '3', 'b5', '5', '6', 'b7'],
+    description: 'Symmetrical 8-note half-whole diminished scale. Jazz & Metal tension.',
   },
   {
     id: 'hirajoshi',

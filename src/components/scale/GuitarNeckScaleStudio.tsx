@@ -7,6 +7,45 @@ import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
 import { Play, Pause, Sparkles, Plus, Trash2, Music, Eye, Layers, Globe, CheckCircle2, RotateCcw, ArrowUp, ArrowDown, Repeat, Shuffle, Volume2 } from 'lucide-react';
 
+export interface SlideRuleChordDef {
+  id: string;
+  name: string;
+  category: 'triad' | 'seventh' | 'sixth' | 'extended' | 'altered' | 'suspended';
+  degreeFormula: string[];
+  semitones: number[];
+}
+
+export const SLIDE_RULE_CHORDS: SlideRuleChordDef[] = [
+  { id: 'maj-triad', name: 'Major Triad', category: 'triad', degreeFormula: ['1', '3', '5'], semitones: [0, 4, 7] },
+  { id: 'aug-triad', name: 'Augmented Triad', category: 'triad', degreeFormula: ['1', '3', '#5'], semitones: [0, 4, 8] },
+  { id: 'min-triad', name: 'Minor Triad', category: 'triad', degreeFormula: ['1', 'b3', '5'], semitones: [0, 3, 7] },
+  { id: 'dim-triad', name: 'Diminished Triad', category: 'triad', degreeFormula: ['1', 'b3', 'b5'], semitones: [0, 3, 6] },
+
+  { id: 'dom-7', name: 'Seven Chord - Dominant 7', category: 'seventh', degreeFormula: ['1', '3', '5', 'b7'], semitones: [0, 4, 7, 10] },
+  { id: 'min-7', name: 'Minor Seven - m7', category: 'seventh', degreeFormula: ['1', 'b3', '5', 'b7'], semitones: [0, 3, 7, 10] },
+  { id: 'dim-7', name: 'Diminished Seven - dim7', category: 'seventh', degreeFormula: ['1', 'b3', 'b5', 'bb7'], semitones: [0, 3, 6, 9] },
+  { id: 'maj-7', name: 'Major Seven - Major 7 (maj7)', category: 'seventh', degreeFormula: ['1', '3', '5', '7'], semitones: [0, 4, 7, 11] },
+  { id: 'min-maj-7', name: 'Minor Major Seven - Mmaj7', category: 'seventh', degreeFormula: ['1', 'b3', '5', '7'], semitones: [0, 3, 7, 11] },
+  { id: 'm7b5', name: 'Minor Seven Flat Five - m7b5 (half dim)', category: 'seventh', degreeFormula: ['1', 'b3', 'b5', 'b7'], semitones: [0, 3, 6, 10] },
+
+  { id: 'maj-6', name: 'Six Chord - Major 6', category: 'sixth', degreeFormula: ['1', '3', '5', '6'], semitones: [0, 4, 7, 9] },
+  { id: 'min-6', name: 'Minor Six - m6', category: 'sixth', degreeFormula: ['1', 'b3', '5', '6'], semitones: [0, 3, 7, 9] },
+
+  { id: 'sus4', name: 'Suspended 4 - sus4', category: 'suspended', degreeFormula: ['1', '4', '5'], semitones: [0, 5, 7] },
+  { id: '7sharp5', name: 'Seven Sharp Five - 7#5', category: 'altered', degreeFormula: ['1', '3', '#5', 'b7'], semitones: [0, 4, 8, 10] },
+  { id: '7flat5', name: 'Seven Flat Five - 7b5', category: 'altered', degreeFormula: ['1', '3', 'b5', 'b7'], semitones: [0, 4, 6, 10] },
+
+  { id: 'dom-9', name: 'Nine Chord - 9', category: 'extended', degreeFormula: ['1', '3', '5', 'b7', '9'], semitones: [0, 4, 7, 10, 2] },
+  { id: 'min-9', name: 'Minor Nine - m9', category: 'extended', degreeFormula: ['1', 'b3', '5', 'b7', '9'], semitones: [0, 3, 7, 10, 2] },
+  { id: 'add9', name: 'Add 9 - add9', category: 'extended', degreeFormula: ['1', '3', '5', '9'], semitones: [0, 4, 7, 2] },
+  { id: 'six-add9', name: 'Major Six Add Nine - 6/9', category: 'extended', degreeFormula: ['1', '3', '5', '6', '9'], semitones: [0, 4, 7, 9, 2] },
+
+  { id: 'dom-11', name: 'Eleven Chord - 11', category: 'extended', degreeFormula: ['1', '3', '5', 'b7', '9', '11'], semitones: [0, 4, 7, 10, 2, 5] },
+  { id: '7sharp9', name: 'Seven Sharp Nine - 7#9 (Hendrix)', category: 'altered', degreeFormula: ['1', '3', '5', 'b7', '#9'], semitones: [0, 4, 7, 10, 3] },
+  { id: 'dom-13', name: 'Thirteen Chord - 13', category: 'extended', degreeFormula: ['1', '3', '5', 'b7', '9', '11', '13'], semitones: [0, 4, 7, 10, 2, 5, 9] },
+  { id: '7flat9', name: 'Seven Flat Nine - 7b9', category: 'altered', degreeFormula: ['1', '3', '5', 'b7', 'b9'], semitones: [0, 4, 7, 10, 1] },
+];
+
 export interface GuitarNeckScaleStudioProps {
   rootNote?: string;
   onRootNoteChange?: (rootNote: string) => void;
@@ -49,18 +88,18 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
   };
 
   const [fretboardNotes, setFretboardNotes] = useState<FretboardNote[]>([]);
-
-  // Sequence Progression State & Arpeggio Direction State
+  const [showOffScaleNotes, setShowOffScaleNotes] = useState<boolean>(false);
   const [progression, setProgression] = useState<ScaleProgressionStep[]>([]);
   const [isPlayingSeq, setIsPlayingSeq] = useState<boolean>(false);
   const [activeStepIndex, setActiveStepIndex] = useState<number>(-1);
-  const [bpm, setBpm] = useState<number>(100);
+  const [activePlayingFretKey, setActivePlayingFretKey] = useState<string | null>(null);
+  const [bpm, setBpm] = useState<number>(120);
+
+  // Slide Rule State
+  const [slideRuleTab, setSlideRuleTab] = useState<'diatonic' | 'harmonic' | 'chords'>('diatonic');
   const [isPlayingArpeggio, setIsPlayingArpeggio] = useState<boolean>(false);
   const [arpeggioDirection, setArpeggioDirection] = useState<'up' | 'down' | 'updown' | 'random'>('up');
   const [mutedArpeggioNotes, setMutedArpeggioNotes] = useState<Set<string>>(new Set());
-
-  // Real-time Audio Visual Highlight State — only tracks one specific string+fret position
-  const [activePlayingFretKey, setActivePlayingFretKey] = useState<string | null>(null);
 
   const triggerNoteHighlight = (stringNum: number, fret: number, durationMs: number = 300) => {
     setActivePlayingFretKey(`${stringNum}-${fret}`);
@@ -111,8 +150,6 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
     });
   };
 
-  const [showOffScaleNotes, setShowOffScaleNotes] = useState<boolean>(false);
-
   const seqTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Re-generate fretboard notes across all 24 frets whenever rootNote, selectedScaleId, or showOffScaleNotes changes
@@ -135,6 +172,46 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
   // Toggle off-scale notes visibility
   const handleToggleOffScaleNotes = () => {
     setShowOffScaleNotes(prev => !prev);
+  };
+
+  // Musical Slide Rule: Play custom chord arpeggio
+  const handlePlayChordArpeggio = (chordDef: SlideRuleChordDef) => {
+    if (isPlayingArpeggio) return;
+    setIsPlayingArpeggio(true);
+
+    const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
+
+    chordDef.semitones.forEach((semi, idx) => {
+      setTimeout(() => {
+        const midiPitch = 60 + semi;
+        const freq = 440 * Math.pow(2, (midiPitch - 69) / 12);
+        playPluckedNote(freq, 0.8);
+
+        const noteName = NOTES_CHROMATIC[(rootIdx + semi) % 12];
+        const match = fretboardNotes.find(n => n.noteName === noteName && n.isEnabled);
+        if (match) {
+          triggerNoteHighlight(match.stringNum, match.fret, 250);
+        }
+
+        if (idx === chordDef.semitones.length - 1) {
+          setTimeout(() => setIsPlayingArpeggio(false), 500);
+        }
+      }, idx * 240);
+    });
+  };
+
+  // Musical Slide Rule: Load custom chord formula on fretboard
+  const handleLoadChordOnNeck = (chordDef: SlideRuleChordDef) => {
+    const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
+    const chordNoteNames = new Set(chordDef.semitones.map(semi => NOTES_CHROMATIC[(rootIdx + semi) % 12]));
+
+    setFretboardNotes(prev =>
+      prev.map(n => ({
+        ...n,
+        isScaleNote: chordNoteNames.has(n.noteName),
+        isEnabled: chordNoteNames.has(n.noteName),
+      }))
+    );
   };
 
   // Selected scale definition object
@@ -607,6 +684,243 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                 max={200}
                 step={5}
               />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================== */}
+      {/* SCOTTY'S FAMOUS MUSICAL SLIDE RULE & HARMONIZER MATRIX */}
+      {/* ========================================================== */}
+      <div className="p-6 rounded-2xl glass-panel border border-border/40 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-400" />
+              <h3 className="text-xl font-extrabold tracking-tight">Musical Slide Rule & Harmonizer Matrix</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Complete modal harmonization degree map, Roman numerals, and 23 chord/arpeggio formula matrices for Key of <span className="font-bold text-amber-400 font-mono">{rootNote}</span>.
+            </p>
+          </div>
+
+          {/* 3-Way Sub-Tabs */}
+          <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border/50">
+            <Button
+              size="sm"
+              variant={slideRuleTab === 'diatonic' ? 'default' : 'ghost'}
+              onClick={() => setSlideRuleTab('diatonic')}
+              className="text-xs font-bold gap-1.5"
+            >
+              Major Diatonic Modes
+            </Button>
+            <Button
+              size="sm"
+              variant={slideRuleTab === 'harmonic' ? 'default' : 'ghost'}
+              onClick={() => setSlideRuleTab('harmonic')}
+              className="text-xs font-bold gap-1.5"
+            >
+              Harmonic Minor Modes
+            </Button>
+            <Button
+              size="sm"
+              variant={slideRuleTab === 'chords' ? 'default' : 'ghost'}
+              onClick={() => setSlideRuleTab('chords')}
+              className="text-xs font-bold gap-1.5"
+            >
+              23 Chord & Arpeggio Formulas
+            </Button>
+          </div>
+        </div>
+
+        {/* VIEW 1: MAJOR DIATONIC MODES (Scotty's Slide Rule Top-Left) */}
+        {slideRuleTab === 'diatonic' && (
+          <div className="space-y-4">
+            <div className="text-xs text-muted-foreground font-medium">
+              Click any mode or Roman numeral below to set the active scale and map its notes across all 24 frets:
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { roman: 'I', name: 'IONIAN - Major Diatonic Scale', scaleId: 'major', degree: '1 2 3 4 5 6 7', type: 'Major Triad / Maj7' },
+                { roman: 'ii', name: 'DORIAN - Minor', scaleId: 'dorian', degree: '1 2 b3 4 5 6 b7', type: 'Minor Triad / m7' },
+                { roman: 'iii', name: 'PHRYGIAN - Minor', scaleId: 'phrygian', degree: '1 b2 b3 4 5 b6 b7', type: 'Minor Triad / m7' },
+                { roman: 'IV', name: 'LYDIAN - Major', scaleId: 'lydian', degree: '1 2 3 #4 5 6 7', type: 'Major Triad / Maj7' },
+                { roman: 'V', name: 'MIXOLYDIAN - Major', scaleId: 'mixolydian', degree: '1 2 3 4 5 6 b7', type: 'Major Triad / Dom7' },
+                { roman: 'Vi', name: 'AEOLIAN - Natural Minor (relative minor)', scaleId: 'natural-minor', degree: '1 2 b3 4 5 b6 b7', type: 'Minor Triad / m7' },
+                { roman: 'Vii°', name: 'LOCRIAN - Half Diminished', scaleId: 'locrian', degree: '1 b2 b3 4 b5 b6 b7', type: 'Diminished Triad / m7b5' },
+              ].map((m) => {
+                const notes = getScaleNotes(rootNote, m.scaleId);
+                const isSelected = selectedScaleId === m.scaleId;
+
+                return (
+                  <button
+                    key={`diatonic-mode-${m.roman}`}
+                    onClick={() => setSelectedScaleId(m.scaleId)}
+                    className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
+                      isSelected
+                        ? 'border-amber-400 bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/40 shadow-lg'
+                        : 'border-border/60 bg-slate-950/40 hover:bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-serif font-extrabold text-base text-amber-400 w-8">{m.roman}</span>
+                        <span className="font-bold text-xs text-foreground">{m.name}</span>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px] font-mono">{m.type}</Badge>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {notes.map((n, idx) => (
+                        <span
+                          key={`note-${idx}`}
+                          className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                            n.isRoot
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-black'
+                              : 'bg-slate-900 text-slate-200 border-slate-800'
+                          }`}
+                        >
+                          {n.noteName} <span className="text-[9px] opacity-70">({n.interval})</span>
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 2: HARMONIC MINOR MODES (Scotty's Slide Rule Top-Right) */}
+        {slideRuleTab === 'harmonic' && (
+          <div className="space-y-4">
+            <div className="text-xs text-muted-foreground font-medium">
+              Click any Harmonic Minor mode to map its exotic interval formula to the fretboard:
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { roman: 'i', name: 'HARMONIC MINOR - Aeolian Major 7', scaleId: 'harmonic-minor', degree: '1 2 b3 4 5 b6 7' },
+                { roman: 'iiø', name: 'LOCRIAN #6 - Half Diminished', scaleId: 'locrian-sharp-6', degree: '1 b2 b3 4 b5 6 b7' },
+                { roman: 'III+', name: 'IONIAN #5 - Augmented', scaleId: 'ionian-sharp-5', degree: '1 2 3 4 #5 6 7' },
+                { roman: 'iV', name: 'DORIAN #4 - Romanian / Minor', scaleId: 'dorian-sharp-4', degree: '1 2 b3 #4 5 6 b7' },
+                { roman: 'V', name: 'PHRYGIAN MAJOR - Spanish Gypsy', scaleId: 'phrygian-dominant', degree: '1 b2 3 4 5 b6 b7' },
+                { roman: 'Vi', name: 'LYDIAN #2 - Major', scaleId: 'lydian-sharp-2', degree: '1 #2 3 #4 5 6 7' },
+                { roman: 'Vii°', name: 'ULTRALOCRIAN - Diminished 7', scaleId: 'ultralocrian', degree: '1 b2 b3 b4 b5 b6 bb7' },
+              ].map((m) => {
+                const notes = getScaleNotes(rootNote, m.scaleId);
+                const isSelected = selectedScaleId === m.scaleId;
+
+                return (
+                  <button
+                    key={`harmonic-mode-${m.roman}`}
+                    onClick={() => setSelectedScaleId(m.scaleId)}
+                    className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
+                      isSelected
+                        ? 'border-purple-400 bg-purple-500/15 text-purple-200 ring-1 ring-purple-400/40 shadow-lg'
+                        : 'border-border/60 bg-slate-950/40 hover:bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-serif font-extrabold text-base text-purple-400 w-10">{m.roman}</span>
+                        <span className="font-bold text-xs text-foreground">{m.name}</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-mono text-purple-300 border-purple-400/30">Harmonic Minor Mode</Badge>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {notes.map((n, idx) => (
+                        <span
+                          key={`note-h-${idx}`}
+                          className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                            n.isRoot
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-black'
+                              : 'bg-purple-950/40 text-purple-200 border-purple-800/60'
+                          }`}
+                        >
+                          {n.noteName} <span className="text-[9px] opacity-70">({n.interval})</span>
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 3: 23 CHORD & ARPEGGIO FORMULAS (Scotty's Slide Rule Bottom Matrix) */}
+        {slideRuleTab === 'chords' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-muted-foreground font-medium">
+              <span>23 Chord & Arpeggio Formulas from Musical Slide Rule for root note <strong className="text-amber-400 font-mono">{rootNote}</strong>:</span>
+              <span className="text-[11px] opacity-70">Click "Load on Neck" to map arpeggio notes across all 24 frets, or "Play Arpeggio" to hear audio preview.</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {SLIDE_RULE_CHORDS.map((chord) => {
+                const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
+                const chordNotes = chord.semitones.map((semi, idx) => ({
+                  noteName: NOTES_CHROMATIC[(rootIdx + semi) % 12],
+                  interval: chord.degreeFormula[idx] || `${semi}`,
+                  isRoot: semi === 0,
+                }));
+
+                return (
+                  <div
+                    key={`slide-chord-${chord.id}`}
+                    className="p-3.5 rounded-xl border border-border/60 bg-slate-950/50 hover:bg-slate-950/80 transition-all flex flex-col justify-between gap-3 shadow-md"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-xs text-amber-300">{rootNote} {chord.name}</span>
+                        <Badge variant="secondary" className="text-[9px] font-mono capitalize opacity-80">{chord.category}</Badge>
+                      </div>
+
+                      {/* Note Pills */}
+                      <div className="flex flex-wrap gap-1.5 mt-2.5">
+                        {chordNotes.map((cn, idx) => (
+                          <span
+                            key={`cn-${idx}`}
+                            className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                              cn.isRoot
+                                ? 'bg-amber-500/25 text-amber-300 border-amber-500/40 ring-1 ring-amber-400/30'
+                                : 'bg-slate-900 text-slate-200 border-slate-800'
+                            }`}
+                          >
+                            {cn.noteName} <span className="text-[9px] opacity-70">({cn.interval})</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/30">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleLoadChordOnNeck(chord)}
+                        className="flex-1 gap-1 text-[10px] h-7 font-bold border-amber-500/30 hover:bg-amber-500/10 text-amber-300"
+                      >
+                        <Layers className="h-3 w-3" />
+                        Load on Neck
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePlayChordArpeggio(chord)}
+                        className="flex-1 gap-1 text-[10px] h-7 font-bold border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300"
+                      >
+                        <Play className="h-3 w-3" />
+                        Play Arpeggio
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

@@ -231,10 +231,10 @@ export const ScalePresetsSelector: React.FC<ScalePresetsSelectorProps> = ({
             <div className="flex flex-wrap gap-1">
               {[
                 { id: 'all', label: 'All' },
-                { id: 'diatonic', label: 'Diatonic' },
+                { id: 'diatonic', label: 'Diatonic Modes' },
+                { id: 'non-diatonic', label: 'Harmonic Minor Modes' },
                 { id: 'pentatonic-blues', label: 'Pentatonic/Blues' },
-                { id: 'non-diatonic', label: 'Non-Diatonic' },
-                { id: 'exotic', label: 'Exotic' },
+                { id: 'exotic', label: 'Exotic/Symmetrical' },
               ].map(cat => (
                 <button
                   key={`cat-filter-${cat.id}`}
@@ -251,10 +251,27 @@ export const ScalePresetsSelector: React.FC<ScalePresetsSelectorProps> = ({
             </div>
           </div>
 
-          {/* Scale Definition Selector Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
-            {filteredScales.map(scale => {
+          {/* Scale Definition Selector Grid with Roman Numerals for Diatonic & Harmonic Modes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
+            {filteredScales.map((scale, idx) => {
               const isSelected = selectedScaleId === scale.id;
+
+              // Roman numeral mapping for Diatonic and Harmonic Minor modes
+              const diatonicRomans = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+              const harmonicRomans = ['i', 'iiø', 'III+', 'iV', 'V', 'Vi', 'vii°'];
+
+              let romanNumeral = '';
+              if (scale.category === 'diatonic') {
+                const diatonicIdx = SCALE_DEFINITIONS.filter(s => s.category === 'diatonic').findIndex(s => s.id === scale.id);
+                if (diatonicIdx >= 0 && diatonicIdx < diatonicRomans.length) {
+                  romanNumeral = diatonicRomans[diatonicIdx];
+                }
+              } else if (scale.category === 'non-diatonic' && (scale.id.includes('harmonic') || scale.id.includes('locrian') || scale.id.includes('ionian') || scale.id.includes('dorian') || scale.id.includes('phrygian') || scale.id.includes('lydian') || scale.id.includes('ultralocrian'))) {
+                const harmonicIdx = ['harmonic-minor', 'locrian-sharp-6', 'ionian-sharp-5', 'dorian-sharp-4', 'phrygian-dominant', 'lydian-sharp-2', 'ultralocrian'].indexOf(scale.id);
+                if (harmonicIdx >= 0 && harmonicIdx < harmonicRomans.length) {
+                  romanNumeral = harmonicRomans[harmonicIdx];
+                }
+              }
 
               return (
                 <button
@@ -262,12 +279,19 @@ export const ScalePresetsSelector: React.FC<ScalePresetsSelectorProps> = ({
                   onClick={() => onSelectedScaleIdChange(scale.id)}
                   className={`p-2.5 rounded-xl border text-left text-xs transition-all flex flex-col justify-between ${
                     isSelected
-                      ? 'border-primary bg-primary/15 text-primary font-bold shadow-md ring-1 ring-primary/30'
+                      ? 'border-amber-400 bg-amber-500/15 text-amber-200 font-bold shadow-md ring-1 ring-amber-400/30'
                       : 'border-border/60 hover:bg-muted text-muted-foreground'
                   }`}
                 >
                   <div className="font-bold flex items-center justify-between gap-1">
-                    <span className="line-clamp-1">{scale.name}</span>
+                    <div className="flex items-center gap-1.5 line-clamp-1">
+                      {romanNumeral && (
+                        <span className="font-serif font-extrabold text-amber-400 text-xs px-1 rounded bg-amber-500/10 border border-amber-500/20">
+                          {romanNumeral}
+                        </span>
+                      )}
+                      <span>{scale.name}</span>
+                    </div>
                     <Badge variant="secondary" className="text-[9px] px-1 py-0 capitalize opacity-80 shrink-0">
                       {scale.category.replace('-', ' ')}
                     </Badge>
