@@ -378,19 +378,44 @@ export function getNoteRoleInContext(scaleId: string, interval: string): NoteRol
 }
 
 /**
- * Calculates scale box position (1 to 5) for a given fretboard note.
+ * Determines whether a fretboard position (fret) belongs to scale box position (1, 2, 3, 4, or 5).
+ * Each position covers a 4-to-5 fret span across all 6 strings with standard position overlap:
+ * - Position 1: Root shape window [0, 1, 2, 3] semitones from root
+ * - Position 2: 2nd degree shape window [2, 3, 4, 5] semitones from root
+ * - Position 3: 3rd degree shape window [4, 5, 6, 7] semitones from root
+ * - Position 4: 5th degree shape window [7, 8, 9, 10] semitones from root
+ * - Position 5: 6th degree shape window [9, 10, 11, 0] semitones from root
  */
-export function calculateFretboardPosition(rootNote: string, fret: number): number {
+export function isNoteInScalePosition(rootNote: string, fret: number, position: number): boolean {
   const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
   const lowEIdx = NOTES_CHROMATIC.indexOf('E');
   const rootFretLowE = (rootIdx - lowEIdx + 12) % 12;
-  const relFret = (fret - rootFretLowE + 24) % 12;
+  const d = (fret - rootFretLowE + 24) % 12;
 
-  if (relFret >= 0 && relFret <= 2) return 1;
-  if (relFret >= 2 && relFret <= 4) return 2;
-  if (relFret >= 4 && relFret <= 7) return 3;
-  if (relFret >= 7 && relFret <= 9) return 4;
-  return 5;
+  switch (position) {
+    case 1:
+      return d === 0 || d === 1 || d === 2 || d === 3;
+    case 2:
+      return d === 2 || d === 3 || d === 4 || d === 5;
+    case 3:
+      return d === 4 || d === 5 || d === 6 || d === 7;
+    case 4:
+      return d === 7 || d === 8 || d === 9 || d === 10;
+    case 5:
+      return d === 9 || d === 10 || d === 11 || d === 0;
+    default:
+      return true;
+  }
+}
+
+/**
+ * Calculates scale box position (1 to 5) for a given fretboard note.
+ */
+export function calculateFretboardPosition(rootNote: string, fret: number): number {
+  for (let p = 1; p <= 5; p++) {
+    if (isNoteInScalePosition(rootNote, fret, p)) return p;
+  }
+  return 1;
 }
 
 /**

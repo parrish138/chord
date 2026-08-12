@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SCALE_DEFINITIONS, NOTES_CHROMATIC, generateFretboardScale, getScaleNotes } from '../../utils/scaleEngine';
+import { SCALE_DEFINITIONS, NOTES_CHROMATIC, generateFretboardScale, getScaleNotes, isNoteInScalePosition } from '../../utils/scaleEngine';
 import { FretboardNote, ScaleProgressionStep } from '../../types/scale';
 import { playPluckedNote, getGuitarPreset } from '../../utils/audioSynth';
 import { useGlobalBpm } from '../../utils/globalBpmManager';
@@ -655,7 +655,9 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                               const interval = matchingNote.interval;
                               const isTensionInterval = ['4', 'b2', 'b5', '#4', '#5', 'b6'].includes(interval);
                               const posNum = matchingNote.position || 1;
-                              const isPosActive = activePositions.has(posNum);
+                              const isPosActive = activePositions.size === 5 || Array.from(activePositions).some(pNum =>
+                                isNoteInScalePosition(rootNote, matchingNote.fret, pNum)
+                              );
 
                               // Evaluate active visibility for all note role & position categories
                               let isRoleActive = activeRoleFilters.has(role);
