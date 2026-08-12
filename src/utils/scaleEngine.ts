@@ -384,13 +384,12 @@ export function getNoteRoleInContext(scaleId: string, interval: string): NoteRol
  */
 /**
  * Determines whether a fretboard note belongs to scale box position (1, 2, 3, 4, or 5).
- * Position 1 starts at the first instance of the root note on the bottom string (String 6) and ascends through the scale to String 1.
- * Positions 2, 3, 4, 5 start at each ascending scale degree on String 6:
- * - Position 1: Root shape window [0, 1, 2, 3] semitones from root on String 6
- * - Position 2: 2nd degree shape window [2, 3, 4, 5] semitones from root on String 6
- * - Position 3: 3rd degree shape window [4, 5, 6, 7] semitones from root on String 6
- * - Position 4: 4th degree shape window [7, 8, 9, 10] semitones from root on String 6
- * - Position 5: 5th degree shape window [9, 10, 11, 0] semitones from root on String 6
+ * Position 1 starts at the root note on the bottom string (String 6) and ascends through the scale to String 1:
+ * - Position 1: Root shape window [11, 0, 1, 2, 3] (produces 1, 2, 3, 5, 6, 1 scale degree progression)
+ * - Position 2: 2nd degree shape window [2, 3, 4, 5, 6]
+ * - Position 3: 3rd degree shape window [4, 5, 6, 7, 8]
+ * - Position 4: 4th degree shape window [7, 8, 9, 10, 11]
+ * - Position 5: 5th degree shape window [9, 10, 11, 0, 1]
  */
 export function isNoteInScalePosition(rootNote: string, fret: number, position: number): boolean {
   const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
@@ -400,15 +399,15 @@ export function isNoteInScalePosition(rootNote: string, fret: number, position: 
 
   switch (position) {
     case 1:
-      return d === 0 || d === 1 || d === 2 || d === 3;
+      return d === 11 || d === 0 || d === 1 || d === 2 || d === 3;
     case 2:
-      return d === 2 || d === 3 || d === 4 || d === 5;
+      return d === 2 || d === 3 || d === 4 || d === 5 || d === 6;
     case 3:
-      return d === 4 || d === 5 || d === 6 || d === 7;
+      return d === 4 || d === 5 || d === 6 || d === 7 || d === 8;
     case 4:
-      return d === 7 || d === 8 || d === 9 || d === 10;
+      return d === 7 || d === 8 || d === 9 || d === 10 || d === 11;
     case 5:
-      return d === 9 || d === 10 || d === 11 || d === 0;
+      return d === 9 || d === 10 || d === 11 || d === 0 || d === 1;
     default:
       return true;
   }
