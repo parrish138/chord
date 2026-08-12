@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CanvasStudio } from './components/canvas/CanvasStudio';
 import { ChordEditor } from './components/chord/ChordEditor';
 import { ChordLibrary, PRESET_CHORDS } from './components/chord/ChordLibrary';
 import { ChordSongbook } from './components/chord/ChordSongbook';
@@ -12,10 +13,10 @@ import { AudioToneWidget } from './components/audio/AudioToneWidget';
 import { ChordDefinition } from './types/chord';
 import { Button } from './components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
-import { Music2, Sliders, Library, BookOpen, Download, Sun, Moon, Sparkles, Code2, Layers, Music, Hash, GitCommit } from 'lucide-react';
+import { Music2, Sliders, Library, BookOpen, Download, Sun, Moon, Sparkles, Code2, Layers, Music, Hash, GitCommit, LayoutGrid } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'scale-neck' | 'nashville' | 'caged' | 'tab' | 'designer' | 'library' | 'songbook' | 'docs'>('scale-neck');
+  const [activeTab, setActiveTab] = useState<'canvas' | 'scale-neck' | 'nashville' | 'caged' | 'tab' | 'designer' | 'library' | 'songbook' | 'docs'>('canvas');
   const [currentChord, setCurrentChord] = useState<ChordDefinition>(PRESET_CHORDS[0]); // C Major
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -50,11 +51,11 @@ export function App() {
                   ChordLab
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold border border-primary/20">
-                  v1.5
+                  v2.0
                 </span>
               </div>
               <p className="text-[10px] text-muted-foreground hidden sm:block">
-                Scale Neck Studio, Nashville Numbers & CAGED Barre System
+                Composable Canvas Studio & Unified Guitar Sequencer
               </p>
             </div>
           </div>
@@ -84,35 +85,39 @@ export function App() {
       </header>
 
       {/* Hero Banner & Subheading */}
-      <main className="flex-1 container max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         <div className="text-center space-y-3 max-w-3xl mx-auto pt-2">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-panel text-xs font-semibold text-primary border border-primary/20">
             <Sparkles className="h-3.5 w-3.5" />
-            Full Guitar Neck Scale & Non-Diatonic Studio
+            Composable Canvas Studio & Unified Sequencer
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Interactive Fretboard Scale Studio
+            Interactive Composable Workspace
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Explore 16 Diatonic, Non-Diatonic & Exotic scales on a 21-fret guitar neck. Toggle notes on/off and program melodic progressions!
+            Activate, deactivate, and re-order widgets on your custom guitar canvas with our unified master sequencer!
           </p>
         </div>
 
         {/* Primary Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} className="w-full">
           <div className="flex justify-center">
-            <TabsList className="grid grid-cols-4 sm:grid-cols-8 w-full max-w-6xl">
+            <TabsList className="grid grid-cols-4 sm:grid-cols-9 w-full max-w-6xl">
+              <TabsTrigger value="canvas" className="gap-1.5 text-xs font-extrabold text-primary">
+                <LayoutGrid className="h-4 w-4 text-pink-400" />
+                <span>Canvas</span>
+              </TabsTrigger>
               <TabsTrigger value="scale-neck" className="gap-1.5 text-xs font-bold">
                 <GitCommit className="h-4 w-4 text-amber-400" />
                 <span>Scale Neck</span>
               </TabsTrigger>
               <TabsTrigger value="nashville" className="gap-1.5 text-xs">
                 <Hash className="h-4 w-4" />
-                <span>Nashville System</span>
+                <span>Nashville</span>
               </TabsTrigger>
               <TabsTrigger value="caged" className="gap-1.5 text-xs">
                 <Layers className="h-4 w-4" />
-                <span>CAGED System</span>
+                <span>CAGED</span>
               </TabsTrigger>
               <TabsTrigger value="tab" className="gap-1.5 text-xs">
                 <Music className="h-4 w-4" />
@@ -132,32 +137,37 @@ export function App() {
               </TabsTrigger>
               <TabsTrigger value="docs" className="gap-1.5 text-xs">
                 <Code2 className="h-4 w-4" />
-                <span>Components</span>
+                <span>Docs</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Tab 0: Scale Neck Studio */}
+          {/* Tab 0: Composable Canvas Studio (Default Landing Page) */}
+          <TabsContent value="canvas" className="pt-6">
+            <CanvasStudio />
+          </TabsContent>
+
+          {/* Tab 1: Scale Neck Studio */}
           <TabsContent value="scale-neck" className="pt-6">
             <GuitarNeckScaleStudio />
           </TabsContent>
 
-          {/* Tab 1: Nashville Number System */}
+          {/* Tab 2: Nashville Number System */}
           <TabsContent value="nashville" className="pt-6">
             <NashvilleStudio />
           </TabsContent>
 
-          {/* Tab 2: CAGED System Matrix */}
+          {/* Tab 3: CAGED System Matrix */}
           <TabsContent value="caged" className="pt-6">
             <CAGEDMatrix onSelectChord={handleSelectChordFromLibrary} />
           </TabsContent>
 
-          {/* Tab 3: Tablature Studio */}
+          {/* Tab 4: Tablature Studio */}
           <TabsContent value="tab" className="pt-6">
             <TabEditor />
           </TabsContent>
 
-          {/* Tab 4: Designer */}
+          {/* Tab 5: Designer */}
           <TabsContent value="designer" className="pt-6">
             <ChordEditor
               initialChord={currentChord}
@@ -165,17 +175,17 @@ export function App() {
             />
           </TabsContent>
 
-          {/* Tab 5: Preset Library */}
+          {/* Tab 6: Preset Library */}
           <TabsContent value="library" className="pt-6">
             <ChordLibrary onSelectChord={handleSelectChordFromLibrary} />
           </TabsContent>
 
-          {/* Tab 6: Songbook Sheet Creator */}
+          {/* Tab 7: Songbook Sheet Creator */}
           <TabsContent value="songbook" className="pt-6">
             <ChordSongbook />
           </TabsContent>
 
-          {/* Tab 7: Comprehensive Component Suite Documentation */}
+          {/* Tab 8: Comprehensive Component Suite Documentation */}
           <TabsContent value="docs" className="pt-6">
             <div className="max-w-5xl mx-auto space-y-8">
               <div className="p-8 rounded-2xl glass-panel border border-border/40 space-y-4">
@@ -186,129 +196,44 @@ export function App() {
                   </p>
                 </div>
 
-                {/* Index List */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <a href="#doc-scale-neck" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">1. GuitarNeckScaleStudio</a>
-                  <a href="#doc-nashville" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">2. NashvilleStudio</a>
-                  <a href="#doc-caged" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">3. CAGEDMatrix</a>
-                  <a href="#doc-theory" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">4. ChordTheoryCard</a>
-                  <a href="#doc-tab" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">5. TabEditor</a>
-                  <a href="#doc-designer" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">6. ChordEditor</a>
-                  <a href="#doc-library" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">7. ChordLibrary</a>
-                  <a href="#doc-diagram" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">8. ChordDiagram</a>
+                  <a href="#doc-canvas" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">0. CanvasStudio</a>
+                  <a href="#doc-seq" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">1. UnifiedGuitarSequencer</a>
+                  <a href="#doc-scale-neck" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">2. GuitarNeckScaleStudio</a>
+                  <a href="#doc-nashville" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">3. NashvilleStudio</a>
+                  <a href="#doc-caged" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">4. CAGEDMatrix</a>
+                  <a href="#doc-theory" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">5. ChordTheoryCard</a>
+                  <a href="#doc-tab" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">6. TabEditor</a>
+                  <a href="#doc-designer" className="p-2 rounded bg-muted/50 hover:bg-muted font-bold text-primary">7. ChordEditor</a>
                 </div>
               </div>
 
-              {/* Doc 1: GuitarNeckScaleStudio */}
-              <div id="doc-scale-neck" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-                <h4 className="text-xl font-bold text-amber-400">1. &lt;GuitarNeckScaleStudio /&gt;</h4>
+              {/* Doc 0: CanvasStudio */}
+              <div id="doc-canvas" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
+                <h4 className="text-xl font-bold text-pink-400">0. &lt;CanvasStudio /&gt;</h4>
                 <p className="text-xs text-muted-foreground">
-                  Interactive 21-fret vector neck diagram supporting 16 Diatonic, Non-Diatonic, Pentatonic & Exotic scales with note toggling and melody step sequencer.
+                  Composable canvas page with Left-Hand Widget Manager sidebar, widget activate/deactivate toggles, vertical reordering, and accordion expand/collapse.
                 </p>
                 <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto">
-                  <pre>{`import { GuitarNeckScaleStudio } from '@/components/scale/GuitarNeckScaleStudio';
+                  <pre>{`import { CanvasStudio } from '@/components/canvas/CanvasStudio';
 
-export default function ScalePage() {
-  return <GuitarNeckScaleStudio />;
+export default function CanvasPage() {
+  return <CanvasStudio />;
 }`}</pre>
                 </div>
               </div>
 
-              {/* Doc 2: NashvilleStudio */}
-              <div id="doc-nashville" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-                <h4 className="text-xl font-bold text-purple-400">2. &lt;NashvilleStudio /&gt;</h4>
+              {/* Doc 1: UnifiedGuitarSequencer */}
+              <div id="doc-seq" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
+                <h4 className="text-xl font-bold text-amber-400">1. &lt;UnifiedGuitarSequencer /&gt;</h4>
                 <p className="text-xs text-muted-foreground">
-                  Nashville Number System Studio calculating diatonic scale degrees (1-7) across 7 scale modes with interactive progression playback.
+                  Main master guitar sequencer timeline consolidating chords and single neck notes with loop playback & BPM tempo slider.
                 </p>
                 <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto">
-                  <pre>{`import { NashvilleStudio } from '@/components/nashville/NashvilleStudio';
+                  <pre>{`import { UnifiedGuitarSequencer } from '@/components/canvas/UnifiedGuitarSequencer';
 
-export default function NashvillePage() {
-  return <NashvilleStudio />;
-}`}</pre>
-                </div>
-              </div>
-
-              {/* Doc 3: CAGEDMatrix */}
-              <div id="doc-caged" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-                <h4 className="text-xl font-bold text-indigo-400">3. &lt;CAGEDMatrix /&gt;</h4>
-                <p className="text-xs text-muted-foreground">
-                  30 Movable CAGED Barre Chord Matrix (5 Forms × 6 Qualities) with dual Form Reference Map and Transposed Key Generator modes.
-                </p>
-                <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto">
-                  <pre>{`import { CAGEDMatrix } from '@/components/chord/CAGEDMatrix';
-
-export default function CAGEDPage() {
-  return <CAGEDMatrix onSelectChord={(chord) => console.log(chord)} />;
-}`}</pre>
-                </div>
-              </div>
-
-              {/* Doc 4: ChordTheoryCard */}
-              <div id="doc-theory" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-                <h4 className="text-xl font-bold text-emerald-400">4. &lt;ChordTheoryCard /&gt;</h4>
-                <p className="text-xs text-muted-foreground">
-                  Music theory analyzer component displaying constructed notes, interval tags (`1 - 3 - 5`), and educational plain-English explanations.
-                </p>
-                <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto">
-                  <pre>{`import { ChordTheoryCard } from '@/components/chord/ChordTheoryCard';
-import { PRESET_CHORDS } from '@/components/chord/ChordLibrary';
-
-export default function TheoryPage() {
-  return <ChordTheoryCard chord={PRESET_CHORDS[0]} />;
-}`}</pre>
-                </div>
-                <div className="max-w-md pt-2">
-                  <ChordTheoryCard chord={PRESET_CHORDS[0]} />
-                </div>
-              </div>
-
-              {/* Doc 5: TabEditor */}
-              <div id="doc-tab" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-                <h4 className="text-xl font-bold text-pink-400">5. &lt;TabEditor /&gt;</h4>
-                <p className="text-xs text-muted-foreground">
-                  Interactive 6-line SVG guitar tablature editor with beat playback cursor, tempo BPM slider, and ASCII TAB exporter.
-                </p>
-                <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto">
-                  <pre>{`import { TabEditor } from '@/components/tab/TabEditor';
-
-export default function TabPage() {
-  return <TabEditor />;
-}`}</pre>
-                </div>
-              </div>
-
-              {/* Doc 6: ChordEditor */}
-              <div id="doc-designer" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-                <h4 className="text-xl font-bold text-cyan-400">6. &lt;ChordEditor /&gt;</h4>
-                <p className="text-xs text-muted-foreground">
-                  Interactive Chord Designer & Builder with live fretboard placing, theme selection, real-time theory preview, and WebAudio synth.
-                </p>
-                <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto">
-                  <pre>{`import { ChordEditor } from '@/components/chord/ChordEditor';
-
-export default function DesignerPage() {
-  return (
-    <ChordEditor
-      initialChord={chord}
-      onSaveChord={(saved) => console.log(saved)}
-    />
-  );
-}`}</pre>
-                </div>
-              </div>
-
-              {/* Doc 7: ChordLibrary */}
-              <div id="doc-library" className="p-6 rounded-2xl glass-panel border border-border/40 space-y-4">
-                <h4 className="text-xl font-bold text-blue-400">7. &lt;ChordLibrary /&gt;</h4>
-                <p className="text-xs text-muted-foreground">
-                  Preset Chord Library with category filtering, search, audio preview strums, and theory modals.
-                </p>
-                <div className="p-4 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto">
-                  <pre>{`import { ChordLibrary } from '@/components/chord/ChordLibrary';
-
-export default function LibraryPage() {
-  return <ChordLibrary onSelectChord={(chord) => console.log(chord)} />;
+export default function SequencerPage() {
+  return <UnifiedGuitarSequencer />;
 }`}</pre>
                 </div>
               </div>
