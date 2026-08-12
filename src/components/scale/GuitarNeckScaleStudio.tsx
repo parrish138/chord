@@ -588,7 +588,26 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                                 activePlayingFretKey === `${matchingNote.stringNum}-${matchingNote.fret}`;
 
                               const role = matchingNote.noteRole || 'colour';
-                              const isRoleActive = activeRoleFilters.has(role);
+                              const interval = matchingNote.interval;
+                              const isTensionInterval = ['4', 'b2', 'b5', '#4', '#5', 'b6'].includes(interval);
+
+                              // Evaluate active visibility for all note role categories
+                              let isRoleActive = activeRoleFilters.has(role);
+                              if (isTensionInterval && !activeRoleFilters.has('tension')) {
+                                isRoleActive = false;
+                              }
+                              if (role === 'characteristic' && !activeRoleFilters.has('characteristic')) {
+                                isRoleActive = false;
+                              }
+                              if (role === 'chord-tone' && !activeRoleFilters.has('chord-tone')) {
+                                isRoleActive = false;
+                              }
+                              if (role === 'colour' && !activeRoleFilters.has('colour')) {
+                                isRoleActive = false;
+                              }
+                              if (matchingNote.isRoot && !activeRoleFilters.has('root')) {
+                                isRoleActive = false;
+                              }
 
                               let colorStyle = '';
                               if (!matchingNote.isEnabled || !isRoleActive) {
@@ -599,8 +618,8 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                                 colorStyle = 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white ring-2 ring-purple-300/80 shadow-lg shadow-purple-500/30 font-extrabold scale-105 active:scale-95 z-10';
                               } else if (role === 'chord-tone') {
                                 colorStyle = 'bg-gradient-to-tr from-emerald-600 to-green-500 text-white border border-emerald-400/80 shadow-md shadow-emerald-900/40 active:scale-95';
-                              } else if (role === 'tension') {
-                                colorStyle = 'bg-gradient-to-tr from-rose-600 to-pink-500 text-white border border-rose-400/80 shadow-md shadow-rose-900/40 active:scale-95';
+                              } else if (role === 'tension' || isTensionInterval) {
+                                colorStyle = 'bg-gradient-to-tr from-rose-600 to-pink-500 text-white border border-rose-400/80 shadow-md shadow-rose-900/40 active:scale-95 z-10';
                               } else if (isInScale) {
                                 colorStyle = 'bg-gradient-to-tr from-sky-600 to-blue-500 text-white border border-sky-400/60 shadow-md shadow-sky-900/40 active:scale-95';
                               } else {

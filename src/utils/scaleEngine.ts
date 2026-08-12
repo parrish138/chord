@@ -350,20 +350,30 @@ export function getScaleNotes(rootNote: string, scaleId: string): { noteName: st
 export function getNoteRoleInContext(scaleId: string, interval: string): NoteRole {
   if (interval === '1') return 'root';
   const scale = SCALE_DEFINITIONS.find(s => s.id === scaleId);
-  if (!scale) return 'colour';
 
-  if (scale.characteristicTones && scale.characteristicTones.includes(interval)) {
-    return 'characteristic';
-  }
-  if (scale.chordTones && scale.chordTones.includes(interval)) {
-    return 'chord-tone';
-  }
-  if (scale.colourTones && scale.colourTones.includes(interval)) {
-    return 'colour';
-  }
-  if (['4', 'b2', 'b5', '#4', '7'].includes(interval)) {
+  // 1. Classic tension intervals (4th in Major/Mixolydian, b2, b5, #4, b6, #5)
+  if (interval === '4' && (scaleId === 'major' || scaleId === 'mixolydian' || scaleId === 'ionian-sharp-5')) {
     return 'tension';
   }
+  if (['b2', 'b5', '#4', '#5', 'b6'].includes(interval)) {
+    return 'tension';
+  }
+
+  // 2. Mode identity characteristic accents
+  if (scale?.characteristicTones && scale.characteristicTones.includes(interval)) {
+    return 'characteristic';
+  }
+
+  // 3. Chord tones (1, 3, 5, 7 / b3, b5, b7)
+  if (scale?.chordTones && scale.chordTones.includes(interval)) {
+    return 'chord-tone';
+  }
+
+  // 4. Colour extensions (2, 6)
+  if (scale?.colourTones && scale.colourTones.includes(interval)) {
+    return 'colour';
+  }
+
   return 'colour';
 }
 
