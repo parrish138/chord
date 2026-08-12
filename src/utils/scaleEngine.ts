@@ -382,52 +382,48 @@ export function getNoteRoleInContext(scaleId: string, interval: string): NoteRol
  * Employs standard interlocking CAGED / Pentatonic position geometry:
  * The right-hand boundary notes of Position P form the left-hand boundary of Position P+1.
  */
-export function getScalePositionsForNote(rootNote: string, fret: number): number[] {
-  const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
-  const lowEIdx = NOTES_CHROMATIC.indexOf('E');
-  const rootFretLowE = (rootIdx - lowEIdx + 12) % 12;
-  const d = (fret - rootFretLowE + 24) % 12;
+/**
+ * Determines all scale box positions (1 to 5) that a fretboard note belongs to based on scale degree.
+ * Ensures each box position shape (1..5) contains all 3 notes per string for Pentatonic, Major, Minor, and Modal scales.
+ */
+export function getScalePositionsForNote(rootNote: string, noteName: string, scaleId: string = 'pentatonic-minor'): number[] {
+  const scaleNotes = getScaleNotes(rootNote, scaleId);
+  if (scaleNotes.length === 0) return [1];
+
+  const degIndex = scaleNotes.findIndex(n => n.noteName === noteName);
+  if (degIndex === -1) return [1];
+
+  const totalDegrees = scaleNotes.length;
+  const normDeg = (degIndex / totalDegrees) * 5;
 
   const positions: number[] = [];
+  for (let p = 1; p <= 5; p++) {
+    const pCenter = p - 1;
+    let dist = Math.abs(normDeg - pCenter);
+    if (dist > 2.5) dist = 5 - dist;
 
-  // Interlocking 5-Box Position Boundaries:
-  // d = 0..1 (Root degree): Left of Pos 1, Right of Pos 5
-  // d = 2..3 (2nd degree): Right of Pos 1, Left of Pos 2
-  // d = 4..6 (3rd degree): Right of Pos 2, Left of Pos 3
-  // d = 7..8 (5th degree): Right of Pos 3, Left of Pos 4
-  // d = 9..11 (6th degree): Right of Pos 4, Left of Pos 5
-  if (d === 0 || d === 1) {
-    positions.push(1, 5);
-  }
-  if (d === 2 || d === 3) {
-    positions.push(1, 2);
-  }
-  if (d === 4 || d === 5 || d === 6) {
-    positions.push(2, 3);
-  }
-  if (d === 7 || d === 8) {
-    positions.push(3, 4);
-  }
-  if (d === 9 || d === 10 || d === 11) {
-    positions.push(4, 5);
+    // 1.45 normalized radius encompasses 3 scale notes per string for each box position
+    if (dist <= 1.45) {
+      positions.push(p);
+    }
   }
 
-  return positions;
+  return positions.length > 0 ? positions : [1];
 }
 
 /**
  * Determines whether a fretboard note belongs to scale box position (1 to 5).
  */
-export function isNoteInScalePosition(rootNote: string, fret: number, position: number): boolean {
-  const positions = getScalePositionsForNote(rootNote, fret);
+export function isNoteInScalePosition(rootNote: string, fret: number, position: number, noteName: string = rootNote, scaleId: string = 'pentatonic-minor'): boolean {
+  const positions = getScalePositionsForNote(rootNote, noteName, scaleId);
   return positions.includes(position);
 }
 
 /**
  * Calculates primary scale box position (1 to 5) for a given fretboard note.
  */
-export function calculateFretboardPosition(rootNote: string, fret: number): number {
-  const positions = getScalePositionsForNote(rootNote, fret);
+export function calculateFretboardPosition(rootNote: string, fret: number, noteName: string = rootNote, scaleId: string = 'pentatonic-minor'): number {
+  const positions = getScalePositionsForNote(rootNote, noteName, scaleId);
   return positions.length > 0 ? positions[0] : 1;
 }
 
@@ -457,7 +453,7 @@ export function generateFretboardScale(
       const interval = matchingScaleItem ? matchingScaleItem.interval : (INTERVAL_LABELS_MAP[noteSemis] || '1');
       const isRoot = noteSemis === 0;
       const noteRole = getNoteRoleInContext(scaleId, interval);
-      const position = calculateFretboardPosition(rootNote, f);
+      const position = calculateFretboardPosition(rootNote, f, noteName, scaleId);
 
       if (isMatch || includeOffScaleNotes) {
         fretboardNotes.push({
