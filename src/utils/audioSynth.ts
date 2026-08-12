@@ -4,9 +4,10 @@ import { playRahtzPluck } from './rahtzKarplusStrong';
 export type GuitarPreset = 'acoustic' | 'nylon' | 'electric-clean' | 'overdrive';
 
 export interface GuitarToneParams {
-  sustain: number;    // 1 to 10 (default 5)
-  reverb: number;     // 0 to 100 (% wet mix level)
-  brightness: number; // 1000 to 8000 (Hz lowpass cutoff)
+  effectsEnabled: boolean; // default false
+  sustain: number;        // 1 to 10 (default 5)
+  reverb: number;         // 0 to 100 (% wet mix level)
+  brightness: number;     // 1000 to 8000 (Hz lowpass cutoff)
 }
 
 // Standard guitar string base pitches (string 6 to string 1)
@@ -23,6 +24,7 @@ let audioCtx: AudioContext | null = null;
 let currentPreset: GuitarPreset = 'acoustic';
 
 let currentToneParams: GuitarToneParams = {
+  effectsEnabled: false, // Defaulted to OFF!
   sustain: 5,
   reverb: 25,
   brightness: 3600,

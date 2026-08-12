@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GuitarPreset, setGuitarPreset, getGuitarPreset, subscribeGuitarPreset, playPluckedNote, strumChord, getFrequencyForStringAndFret, GuitarToneParams, getGuitarToneParams, setGuitarToneParams, subscribeGuitarToneParams } from '../../utils/audioSynth';
 import { Button } from '../ui/button';
 import { Slider } from '../ui/slider';
+import { Switch } from '../ui/switch';
 import { Volume2, Music, Zap, Sparkles, ChevronRight, ArrowDown, ArrowUp, Sliders, Waves, SunMedium } from 'lucide-react';
 import { PRESET_CHORDS } from '../chord/ChordLibrary';
 
@@ -38,7 +39,7 @@ export const AudioToneWidget: React.FC = () => {
     setGuitarPreset(preset);
   };
 
-  const handleToneParamChange = (key: keyof GuitarToneParams, value: number) => {
+  const handleToneParamChange = (key: keyof GuitarToneParams, value: number | boolean) => {
     setGuitarToneParams({ [key]: value });
   };
 
@@ -103,58 +104,73 @@ export const AudioToneWidget: React.FC = () => {
             </div>
           </div>
 
-          {/* Customizable Tone Tweaker Sliders (Sustain, Reverb, Brightness) */}
-          <div className="p-3 rounded-xl bg-muted/40 border border-border/40 space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-primary">
-              <span className="flex items-center gap-1">
-                <Sliders className="h-3.5 w-3.5" /> Tone Controls & FX
-              </span>
+          {/* FX Enable Toggle Switch & Sliders */}
+          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                <Sliders className="h-3.5 w-3.5 text-primary" />
+                <span>Custom FX & Tone Tweaker</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-muted-foreground">
+                  {toneParams.effectsEnabled ? 'ON' : 'OFF'}
+                </span>
+                <Switch
+                  checked={toneParams.effectsEnabled}
+                  onCheckedChange={checked => handleToneParamChange('effectsEnabled', checked)}
+                />
+              </div>
             </div>
 
-            {/* 1. Sustain Control */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400" /> Sustain Ring</span>
-                <span className="font-mono font-bold text-foreground">{toneParams.sustain} / 10</span>
-              </div>
-              <Slider
-                value={[toneParams.sustain]}
-                onValueChange={vals => handleToneParamChange('sustain', vals[0])}
-                min={1}
-                max={10}
-                step={1}
-              />
-            </div>
+            {/* Sliders panel visible when FX toggle is ON */}
+            {toneParams.effectsEnabled && (
+              <div className="space-y-3 pt-2 border-t border-border/30 animate-in fade-in-0">
+                {/* 1. Sustain Control */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400" /> Sustain Ring</span>
+                    <span className="font-mono font-bold text-foreground">{toneParams.sustain} / 10</span>
+                  </div>
+                  <Slider
+                    value={[toneParams.sustain]}
+                    onValueChange={vals => handleToneParamChange('sustain', vals[0])}
+                    min={1}
+                    max={10}
+                    step={1}
+                  />
+                </div>
 
-            {/* 2. Stereo Room Reverb Wet Mix */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1"><Waves className="h-3 w-3 text-blue-400" /> Room Reverb</span>
-                <span className="font-mono font-bold text-foreground">{toneParams.reverb}%</span>
-              </div>
-              <Slider
-                value={[toneParams.reverb]}
-                onValueChange={vals => handleToneParamChange('reverb', vals[0])}
-                min={0}
-                max={100}
-                step={5}
-              />
-            </div>
+                {/* 2. Stereo Room Reverb Wet Mix */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><Waves className="h-3 w-3 text-blue-400" /> Room Reverb</span>
+                    <span className="font-mono font-bold text-foreground">{toneParams.reverb}%</span>
+                  </div>
+                  <Slider
+                    value={[toneParams.reverb]}
+                    onValueChange={vals => handleToneParamChange('reverb', vals[0])}
+                    min={0}
+                    max={100}
+                    step={5}
+                  />
+                </div>
 
-            {/* 3. Tone Brightness Cutoff */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1"><SunMedium className="h-3 w-3 text-yellow-400" /> Tone Brightness</span>
-                <span className="font-mono font-bold text-foreground">{toneParams.brightness} Hz</span>
+                {/* 3. Tone Brightness Cutoff */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><SunMedium className="h-3 w-3 text-yellow-400" /> Tone Brightness</span>
+                    <span className="font-mono font-bold text-foreground">{toneParams.brightness} Hz</span>
+                  </div>
+                  <Slider
+                    value={[toneParams.brightness]}
+                    onValueChange={vals => handleToneParamChange('brightness', vals[0])}
+                    min={1200}
+                    max={8000}
+                    step={200}
+                  />
+                </div>
               </div>
-              <Slider
-                value={[toneParams.brightness]}
-                onValueChange={vals => handleToneParamChange('brightness', vals[0])}
-                min={1200}
-                max={8000}
-                step={200}
-              />
-            </div>
+            )}
           </div>
 
           {/* Pluck Test Buttons */}

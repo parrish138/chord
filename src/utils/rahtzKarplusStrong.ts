@@ -148,8 +148,8 @@ export function playRahtzPluck(
     delayLine[i] = filteredNoise * envelope * (isLowString ? 0.28 : 0.32);
   }
 
-  // 3. Tuned Damping & Sustain Coefficients (sustain ranges 1 to 10)
-  const sustainOffset = (activeParams.sustain - 5) * 0.0025;
+  // 3. Tuned Damping & Sustain Coefficients (sustain ranges 1 to 10 when FX enabled)
+  const sustainOffset = activeParams.effectsEnabled ? (activeParams.sustain - 5) * 0.0025 : 0;
   const baseDamping =
     preset === 'nylon' ? 0.965 :
     preset === 'electric-clean' ? 0.980 :
@@ -208,7 +208,8 @@ export function playRahtzPluck(
   const source = ctx.createBufferSource();
   source.buffer = buffer;
 
-  const cutoffHz = activeParams.brightness;
+  const defaultCutoff = preset === 'nylon' ? 2600 : preset === 'electric-clean' ? 5000 : preset === 'overdrive' ? 3000 : 3200;
+  const cutoffHz = activeParams.effectsEnabled ? activeParams.brightness : defaultCutoff;
 
   const lowpassFilter = ctx.createBiquadFilter();
   lowpassFilter.type = 'lowpass';
@@ -243,11 +244,11 @@ export function playRahtzPluck(
   bassFilter.connect(bodyResonance);
   bodyResonance.connect(gainNode);
 
-  // Direct dry signal to compressor
+  // Direct dry signal to master compressor
   gainNode.connect(compressor);
 
-  // Wet Reverb Convolver Node
-  if (activeParams.reverb > 0) {
+  // Wet Reverb Convolver Node (only applied if FX toggle is enabled)
+  if (activeParams.effectsEnabled && activeParams.reverb > 0) {
     const convolver = getReverbConvolver(ctx);
     const wetGain = ctx.createGain();
     const wetLevel = (activeParams.reverb / 100) * 0.35;
