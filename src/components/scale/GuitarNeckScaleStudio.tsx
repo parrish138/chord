@@ -117,7 +117,7 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
     setActivePositions(prev => {
       const next = new Set(prev);
       if (next.has(pos)) {
-        if (next.size > 1) next.delete(pos);
+        next.delete(pos);
       } else {
         next.add(pos);
       }
@@ -126,7 +126,11 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
   };
 
   const selectAllPositions = () => {
-    setActivePositions(new Set([1, 2, 3, 4, 5]));
+    if (activePositions.size === 5) {
+      setActivePositions(new Set());
+    } else {
+      setActivePositions(new Set([1, 2, 3, 4, 5]));
+    }
   };
 
   // Slide Rule State
@@ -655,9 +659,11 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                               const interval = matchingNote.interval;
                               const isTensionInterval = ['4', 'b2', 'b5', '#4', '#5', 'b6'].includes(interval);
                               const posNum = matchingNote.position || 1;
-                              const isPosActive = activePositions.size === 5 || Array.from(activePositions).some(pNum =>
-                                isNoteInScalePosition(rootNote, matchingNote.fret, pNum)
-                              );
+                              const isPosActive = activePositions.size === 0
+                                ? false
+                                : Array.from(activePositions).some(pNum =>
+                                    isNoteInScalePosition(rootNote, matchingNote.fret, pNum)
+                                  );
 
                               // Evaluate active visibility for all note role & position categories
                               let isRoleActive = activeRoleFilters.has(role);
