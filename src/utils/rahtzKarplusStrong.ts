@@ -33,19 +33,18 @@ function getAudioContext(): AudioContext {
 
 function getMasterLimiterBus(ctx: AudioContext): { masterHeadroom: GainNode; masterLimiter: DynamicsCompressorNode } {
   if (!masterHeadroomGain || masterHeadroomGain.context !== ctx) {
-    // 1. Headroom scaling gain (0.35 gain scales total 6-string sum to safe peak levels)
+    // Master Headroom scaling (0.40 gain prevents clipping across 6-string sum)
     masterHeadroomGain = ctx.createGain();
-    masterHeadroomGain.gain.setValueAtTime(0.35, ctx.currentTime);
+    masterHeadroomGain.gain.setValueAtTime(0.40, ctx.currentTime);
 
-    // 2. Master Brickwall Limiter (DynamicsCompressorNode configured to prevent > 0dBFS clipping)
+    // Master Brickwall Limiter (DynamicsCompressorNode configured to prevent > 0dBFS clipping)
     masterLimiterCompressor = ctx.createDynamicsCompressor();
-    masterLimiterCompressor.threshold.setValueAtTime(-3.0, ctx.currentTime);
+    masterLimiterCompressor.threshold.setValueAtTime(-2.5, ctx.currentTime);
     masterLimiterCompressor.knee.setValueAtTime(0.0, ctx.currentTime);
     masterLimiterCompressor.ratio.setValueAtTime(20.0, ctx.currentTime);
     masterLimiterCompressor.attack.setValueAtTime(0.001, ctx.currentTime);
     masterLimiterCompressor.release.setValueAtTime(0.040, ctx.currentTime);
 
-    // 3. Post-limiter output gain
     masterOutputGain = ctx.createGain();
     masterOutputGain.gain.setValueAtTime(0.85, ctx.currentTime);
 
@@ -79,7 +78,7 @@ function getReverbConvolver(ctx: AudioContext): ConvolverNode {
   return reverbConvolver;
 }
 
-// Per-String Voice Stealing Registry (Strict 6 Polyphony: 1 voice per string 1..6)
+// Per-String Voice Stealing Registry (Strict 6 Polyphony: 1 active voice per string 1..6)
 interface ActiveVoice {
   stringNum: number;
   sources: AudioBufferSourceNode[];
@@ -89,107 +88,42 @@ interface ActiveVoice {
 
 const activeStringVoices = new Map<number, ActiveVoice>();
 
-function stealVoiceForString(ctx: AudioContext, stringNum: number, now: number): void {
+function stealVoiceForString(ctx: AudioContext, stringNum: number, startTime: number): void {
   const existing = activeStringVoices.get(stringNum);
   if (existing) {
     try {
-      // 12ms rapid linear fade-out to prevent audible pops/clicks when stealing
-      existing.gainNode.gain.cancelScheduledValues(now);
-      existing.gainNode.gain.setValueAtTime(existing.gainNode.gain.value, now);
-      existing.gainNode.gain.linearRampToValueAtTime(0.0001, now + 0.012);
+      // Only steal if previous voice started at or before this new voice
+      if (existing.startTime <= startTime + 0.005) {
+        existing.gainNode.gain.cancelScheduledValues(startTime);
+        existing.gainNode.gain.setValueAtTime(existing.gainNode.gain.value, startTime);
+        existing.gainNode.gain.setTargetAtTime(0.0001, startTime, 0.004);
 
-      const oldSources = existing.sources;
-      const oldGain = existing.gainNode;
+        const oldSources = existing.sources;
+        const oldGain = existing.gainNode;
+        const delayMs = Math.max(20, Math.round((startTime - ctx.currentTime + 0.02) * 1000));
 
-      setTimeout(() => {
-        oldSources.forEach(src => {
+        setTimeout(() => {
+          oldSources.forEach(src => {
+            try {
+              src.stop();
+              src.disconnect();
+            } catch {}
+          });
           try {
-            src.stop();
-            src.disconnect();
+            oldGain.disconnect();
           } catch {}
-        });
-        try {
-          oldGain.disconnect();
-        } catch {}
-      }, 15);
+        }, delayMs);
+      }
     } catch {}
     activeStringVoices.delete(stringNum);
   }
 }
 
-// AudioBuffer Caching System for Karplus-Strong Physical String Synthesis
-const stringBufferCache = new Map<string, AudioBuffer>();
-
-function getOrCreateStringSample(
-  ctx: AudioContext,
-  freq: number,
-  duration: number,
-  loopBlend: number,
-  excitationCutoff: number,
-  preset: string,
-  effectsEnabled: boolean,
-  sustain: number
-): AudioBuffer {
-  const cacheKey = `${freq.toFixed(2)}_${preset}_${loopBlend.toFixed(2)}_${excitationCutoff}_${effectsEnabled ? sustain : 5}`;
-  if (stringBufferCache.has(cacheKey)) {
-    return stringBufferCache.get(cacheKey)!;
-  }
-
-  const sampleRate = ctx.sampleRate;
-  const period = Math.max(2, Math.round(sampleRate / freq));
-  const totalSamples = Math.round(sampleRate * duration);
-
-  const buffer = ctx.createBuffer(1, totalSamples, sampleRate);
-  const data = buffer.getChannelData(0);
-
-  const ring = new Float32Array(period);
-  let excitePrev = 0;
-  const excitationBlend = Math.min(0.9, Math.max(0.1, (excitationCutoff / sampleRate) * 8));
-
-  for (let i = 0; i < period; i++) {
-    const rawNoise = Math.random() * 2 - 1;
-    excitePrev = excitationBlend * rawNoise + (1 - excitationBlend) * excitePrev;
-    ring[i] = excitePrev;
-  }
-
-  const pickIdx = Math.max(1, Math.floor(period * 0.15));
-  for (let i = 0; i < pickIdx; i++) ring[i] *= 0.35;
-
-  const sustainOffset = effectsEnabled ? (sustain - 5) * 0.0008 : 0;
-  const baseDamping = preset === 'nylon' ? 0.992 : preset === 'electric-clean' ? 0.997 : preset === 'overdrive' ? 0.996 : 0.995;
-  const damping = Math.min(0.999, Math.max(0.950, baseDamping + sustainOffset));
-
-  let idx = 0;
-  let prev = ring[period - 1];
-
-  for (let i = 0; i < totalSamples; i++) {
-    const cur = ring[idx];
-    const filtered = loopBlend * cur + (1 - loopBlend) * prev;
-    const decayed = filtered * damping;
-    data[i] = cur;
-    ring[idx] = decayed;
-    prev = decayed;
-    idx = (idx + 1) % period;
-  }
-
-  // Fade out tail to prevent end clicks
-  const fadeLength = Math.min(1024, Math.floor(totalSamples * 0.05));
-  for (let i = 0; i < fadeLength; i++) {
-    const fadeIdx = totalSamples - 1 - i;
-    data[fadeIdx] *= (i / fadeLength);
-  }
-
-  if (stringBufferCache.size > 128) {
-    const firstKey = stringBufferCache.keys().next().value;
-    if (firstKey) stringBufferCache.delete(firstKey);
-  }
-
-  stringBufferCache.set(cacheKey, buffer);
-  return buffer;
-}
-
 const bodyIRCache: Record<number, AudioBuffer> = {};
 
+/**
+ * Creates and caches synthetic acoustic body impulse response buffer
+ */
 export function makeBodyIR(audioCtx: AudioContext, brightness: number): AudioBuffer {
   const roundedKey = Math.round(brightness * 100) / 100;
   if (bodyIRCache[roundedKey]) return bodyIRCache[roundedKey];
@@ -210,23 +144,6 @@ export function makeBodyIR(audioCtx: AudioContext, brightness: number): AudioBuf
   return buf;
 }
 
-// Persistent Convolver Node Cache per Body Mix Level
-const bodyConvolverMap = new Map<number, ConvolverNode>();
-
-function getBodyConvolver(ctx: AudioContext, bodyMix: number): ConvolverNode {
-  const roundedMix = Math.round(bodyMix * 100) / 100;
-  const existing = bodyConvolverMap.get(roundedMix);
-  if (existing && existing.context === ctx) {
-    return existing;
-  }
-
-  const conv = ctx.createConvolver();
-  conv.buffer = makeBodyIR(ctx, roundedMix);
-  conv.normalize = true;
-  bodyConvolverMap.set(roundedMix, conv);
-  return conv;
-}
-
 export function makeDistortionCurve(amount: number): Float32Array {
   const n = 44100;
   const curve = new Float32Array(n);
@@ -239,7 +156,7 @@ export function makeDistortionCurve(amount: number): Float32Array {
 }
 
 /**
- * Pluck note using physical string synthesis with voice stealing, headroom scaling, buffer caching, and convolver reuse
+ * Pluck note using physical string synthesis with voice stealing, headroom scaling, and per-voice body convolvers
  */
 export function playRahtzPluck(
   freq: number,
@@ -284,21 +201,52 @@ export function playRahtzPluck(
 
   const loopBlend = activeParams.loopBlend !== undefined ? activeParams.loopBlend : 0.35;
   const exciteCutoff = activeParams.excitationCutoff || 3200;
+  const sampleRate = ctx.sampleRate;
 
   detunes.forEach(cents => {
     const tunedFreq = freq * Math.pow(2, cents / 1200);
+    const period = Math.max(2, Math.round(sampleRate / tunedFreq));
+    const totalSamples = Math.round(sampleRate * duration);
 
-    // 2. Precomputed Buffer Caching: Retrieve cached string buffer instantly
-    const buffer = getOrCreateStringSample(
-      ctx,
-      tunedFreq,
-      duration,
-      loopBlend,
-      exciteCutoff,
-      preset,
-      activeParams.effectsEnabled,
-      activeParams.sustain
-    );
+    const buffer = ctx.createBuffer(1, totalSamples, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    const ring = new Float32Array(period);
+    let excitePrev = 0;
+    const excitationBlend = Math.min(0.9, Math.max(0.1, (exciteCutoff / sampleRate) * 8));
+
+    for (let i = 0; i < period; i++) {
+      const rawNoise = Math.random() * 2 - 1;
+      excitePrev = excitationBlend * rawNoise + (1 - excitationBlend) * excitePrev;
+      ring[i] = excitePrev;
+    }
+
+    const pickIdx = Math.max(1, Math.floor(period * 0.15));
+    for (let i = 0; i < pickIdx; i++) ring[i] *= 0.35;
+
+    const sustainOffset = activeParams.effectsEnabled ? (activeParams.sustain - 5) * 0.0008 : 0;
+    const baseDamping = preset === 'nylon' ? 0.992 : preset === 'electric-clean' ? 0.997 : preset === 'overdrive' ? 0.996 : 0.995;
+    const damping = Math.min(0.999, Math.max(0.950, baseDamping + sustainOffset));
+
+    let idx = 0;
+    let prev = ring[period - 1];
+
+    for (let i = 0; i < totalSamples; i++) {
+      const cur = ring[idx];
+      const filtered = loopBlend * cur + (1 - loopBlend) * prev;
+      const decayed = filtered * damping;
+      data[i] = cur;
+      ring[idx] = decayed;
+      prev = decayed;
+      idx = (idx + 1) % period;
+    }
+
+    // Fade out tail to prevent end clicks
+    const fadeLength = Math.min(1024, Math.floor(totalSamples * 0.05));
+    for (let i = 0; i < fadeLength; i++) {
+      const fadeIdx = totalSamples - 1 - i;
+      data[fadeIdx] *= (i / fadeLength);
+    }
 
     const src = ctx.createBufferSource();
     src.buffer = buffer;
@@ -329,11 +277,14 @@ export function playRahtzPluck(
       chainEnd = postGain;
     }
 
-    // 3. Persistent Convolver Node Reuse
+    // Acoustic Body Convolver (Fresh ConvolverNode per voice using cached IR buffer)
     const bodyMix = activeParams.bodyMix !== undefined ? activeParams.bodyMix : (preset === 'acoustic' ? 0.40 : preset === 'nylon' ? 0.50 : 0.05);
 
     if (bodyMix > 0) {
-      const conv = getBodyConvolver(ctx, bodyMix);
+      const conv = ctx.createConvolver();
+      conv.buffer = makeBodyIR(ctx, bodyMix);
+      conv.normalize = false;
+
       const dry = ctx.createGain();
       const wet = ctx.createGain();
       dry.gain.setValueAtTime(1 - bodyMix, actualStart);
