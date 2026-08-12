@@ -203,7 +203,7 @@ export const ScalePresetsSelector: React.FC<ScalePresetsSelectorProps> = ({
             <span className="text-amber-400 font-mono font-extrabold">{rootNote}</span>
           </div>
 
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5 mb-3">
             {NOTES_CHROMATIC.map(n => (
               <button
                 key={`preset-root-${n}`}
@@ -218,6 +218,87 @@ export const ScalePresetsSelector: React.FC<ScalePresetsSelectorProps> = ({
               </button>
             ))}
           </div>
+
+          {/* Active Scale Triad, Roman Numeral & Description Box */}
+          {(() => {
+            const diatonicRomans = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+            const harmonicRomans = ['i', 'iiø', 'III+', 'iV', 'V', 'Vi', 'vii°'];
+
+            let roman = '';
+            if (activeScaleDef.category === 'diatonic') {
+              const diatonicIdx = SCALE_DEFINITIONS.filter(s => s.category === 'diatonic').findIndex(s => s.id === activeScaleDef.id);
+              if (diatonicIdx >= 0 && diatonicIdx < diatonicRomans.length) roman = diatonicRomans[diatonicIdx];
+            } else if (activeScaleDef.category === 'non-diatonic') {
+              const harmonicIdx = ['harmonic-minor', 'locrian-sharp-6', 'ionian-sharp-5', 'dorian-sharp-4', 'phrygian-dominant', 'lydian-sharp-2', 'ultralocrian'].indexOf(activeScaleDef.id);
+              if (harmonicIdx >= 0 && harmonicIdx < harmonicRomans.length) roman = harmonicRomans[harmonicIdx];
+            }
+
+            const root = activeScaleNotes.find(n => n.interval === '1');
+            const third = activeScaleNotes.find(n => n.interval === '3' || n.interval === 'b3');
+            const fifth = activeScaleNotes.find(n => n.interval === '5' || n.interval === 'b5' || n.interval === '#5');
+            const seventh = activeScaleNotes.find(n => n.interval === '7' || n.interval === 'b7' || n.interval === 'bb7');
+
+            let triadType = 'Triad';
+            let chord7Type = '';
+
+            if (third && fifth) {
+              if (third.interval === '3' && fifth.interval === '5') {
+                triadType = 'Major Triad';
+                chord7Type = seventh?.interval === '7' ? 'Major 7th (Maj7)' : seventh?.interval === 'b7' ? 'Dominant 7th (7)' : '';
+              } else if (third.interval === 'b3' && fifth.interval === '5') {
+                triadType = 'Minor Triad';
+                chord7Type = seventh?.interval === 'b7' ? 'Minor 7th (m7)' : seventh?.interval === '7' ? 'Minor Major 7th (Mmaj7)' : '';
+              } else if (third.interval === 'b3' && fifth.interval === 'b5') {
+                triadType = 'Diminished Triad';
+                chord7Type = seventh?.interval === 'b7' ? 'Half-Diminished 7th (m7b5)' : seventh?.interval === 'bb7' ? 'Diminished 7th (dim7)' : '';
+              } else if (third.interval === '3' && fifth.interval === '#5') {
+                triadType = 'Augmented Triad';
+                chord7Type = seventh?.interval === 'b7' ? 'Augmented Dominant (7#5)' : '';
+              }
+            }
+
+            const triadNotes = [root?.noteName, third?.noteName, fifth?.noteName].filter(Boolean).join(' - ');
+            const chord7Notes = [root?.noteName, third?.noteName, fifth?.noteName, seventh?.noteName].filter(Boolean).join(' - ');
+
+            return (
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-2.5 shadow-lg">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    {roman && (
+                      <span className="font-serif font-black text-sm text-amber-400 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30">
+                        {roman}
+                      </span>
+                    )}
+                    <span className="font-extrabold text-xs text-foreground">
+                      {rootNote} {activeScaleDef.name}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-mono text-amber-300 border-amber-500/30">
+                    {triadType}
+                  </Badge>
+                </div>
+
+                {/* Triad & 7th Chord Notes */}
+                <div className="space-y-1 text-xs font-mono">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="text-[11px] font-bold text-amber-300">{triadType}:</span>
+                    <span className="font-bold text-foreground">{triadNotes || 'N/A'}</span>
+                  </div>
+                  {chord7Type && (
+                    <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                      <span className="font-bold text-purple-300">{chord7Type}:</span>
+                      <span className="font-bold text-slate-200">{chord7Notes}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Description */}
+                <p className="text-[11px] text-muted-foreground leading-relaxed pt-1.5 border-t border-slate-800/60 font-normal">
+                  {activeScaleDef.description}
+                </p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* 2. Scale Category Filter & Preset Grid */}
