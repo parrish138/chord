@@ -20,6 +20,14 @@ export const INTERVAL_LABELS_MAP: Record<number, string> = {
 
 // 16 Diatonic, Non-Diatonic, Pentatonic & Exotic Scales (ToneGym Reference)
 export const SCALE_DEFINITIONS: ScaleDefinition[] = [
+  {
+    id: 'all-notes',
+    name: 'All Chromatic Notes (No Scale / Full Neck)',
+    category: 'all-notes',
+    intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    intervalNames: ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', 'b6', '6', 'b7', '7'],
+    description: 'Shows and enables all 12 chromatic notes across all 24 frets of the fretboard.',
+  },
   // --- Diatonic Modes ---
   {
     id: 'major',
@@ -208,30 +216,36 @@ export function getScaleNotes(rootNote: string, scaleId: string): { noteName: st
 export function generateFretboardScale(
   rootNote: string,
   scaleId: string,
-  totalFrets: number = 21
+  totalFrets: number = 24,
+  includeOffScaleNotes: boolean = true
 ): FretboardNote[] {
   const scaleNotes = getScaleNotes(rootNote, scaleId);
   const scaleNoteNames = new Set(scaleNotes.map(n => n.noteName));
+  const rootIdx = NOTES_CHROMATIC.indexOf(rootNote);
   const fretboardNotes: FretboardNote[] = [];
 
   for (let s = 1; s <= 6; s++) {
     for (let f = 0; f <= totalFrets; f++) {
       const { noteName, octave } = getNoteForStringAndFret(s, f);
       const isMatch = scaleNoteNames.has(noteName);
+      const freq = getFrequencyForStringAndFret(s, f);
 
-      if (isMatch) {
-        const matchingScaleItem = scaleNotes.find(n => n.noteName === noteName)!;
-        const freq = getFrequencyForStringAndFret(s, f);
+      const noteSemis = (NOTES_CHROMATIC.indexOf(noteName) - rootIdx + 12) % 12;
+      const matchingScaleItem = scaleNotes.find(n => n.noteName === noteName);
 
+      const interval = matchingScaleItem ? matchingScaleItem.interval : (INTERVAL_LABELS_MAP[noteSemis] || '1');
+      const isRoot = noteSemis === 0;
+
+      if (isMatch || includeOffScaleNotes) {
         fretboardNotes.push({
           stringNum: s,
           fret: f,
           noteName,
           octave,
           freq,
-          interval: matchingScaleItem.interval,
-          isRoot: matchingScaleItem.isRoot,
-          isEnabled: true, // Enabled by default
+          interval,
+          isRoot,
+          isEnabled: isMatch || scaleId === 'all-notes',
         });
       }
     }

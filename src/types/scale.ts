@@ -1,4 +1,4 @@
-export type DiatonicCategory = 'diatonic' | 'non-diatonic' | 'exotic' | 'pentatonic-blues';
+export type DiatonicCategory = 'all-notes' | 'diatonic' | 'non-diatonic' | 'exotic' | 'pentatonic-blues';
 
 export interface ScaleDefinition {
   id: string;

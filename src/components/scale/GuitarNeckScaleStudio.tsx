@@ -5,11 +5,11 @@ import { playPluckedNote, getGuitarPreset } from '../../utils/audioSynth';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
-import { Play, Pause, Sparkles, Plus, Trash2, Music, Eye, Layers } from 'lucide-react';
+import { Play, Pause, Sparkles, Plus, Trash2, Music, Eye, Layers, Globe, CheckCircle2 } from 'lucide-react';
 
 export const GuitarNeckScaleStudio: React.FC = () => {
   const [rootNote, setRootNote] = useState<string>('C');
-  const [selectedScaleId, setSelectedScaleId] = useState<string>('major');
+  const [selectedScaleId, setSelectedScaleId] = useState<string>('all-notes');
   const [displayMode, setDisplayMode] = useState<'noteName' | 'interval'>('interval');
   const [fretboardNotes, setFretboardNotes] = useState<FretboardNote[]>([]);
 
@@ -23,9 +23,14 @@ export const GuitarNeckScaleStudio: React.FC = () => {
 
   // Re-generate fretboard notes across all 24 frets whenever rootNote or selectedScaleId changes
   useEffect(() => {
-    const notes = generateFretboardScale(rootNote, selectedScaleId, 24);
+    const notes = generateFretboardScale(rootNote, selectedScaleId, 24, true);
     setFretboardNotes(notes);
   }, [rootNote, selectedScaleId]);
+
+  // Enable all notes across the neck
+  const handleEnableAllNotes = () => {
+    setFretboardNotes(prev => prev.map(n => ({ ...n, isEnabled: true })));
+  };
 
   // Selected scale definition object
   const currentScaleDef = SCALE_DEFINITIONS.find(s => s.id === selectedScaleId) || SCALE_DEFINITIONS[0];
@@ -47,7 +52,12 @@ export const GuitarNeckScaleStudio: React.FC = () => {
   const handleNeckNoteClick = (note: FretboardNote) => {
     playPluckedNote(note.freq, 0, 2.4, 0.45, note.stringNum, getGuitarPreset());
 
-    // Add note to sequence progression if enabled
+    // Enable note if disabled
+    if (!note.isEnabled) {
+      handleToggleNoteOnNeck(note.stringNum, note.fret);
+    }
+
+    // Add note to sequence progression
     const newStep: ScaleProgressionStep = {
       id: `step-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       stepNumber: progression.length + 1,
@@ -122,14 +132,31 @@ export const GuitarNeckScaleStudio: React.FC = () => {
               <h3 className="text-2xl font-extrabold tracking-tight">Full 24-Fret Guitar Neck Scale Studio</h3>
             </div>
             <p className="text-xs text-muted-foreground">
-              Interactive 24-fret neck mapping all Diatonic, Non-Diatonic & Exotic scales. Click notes to enable/disable or program melodies!
+              Interactive 24-fret neck mapping all notes and scales. Click any fret to play or program custom melodies!
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="px-3 py-1 text-xs font-mono border-primary/30 text-primary bg-primary/10">
-              {rootNote} {currentScaleDef.name}
-            </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant={selectedScaleId === 'all-notes' ? 'default' : 'outline'}
+              onClick={() => setSelectedScaleId('all-notes')}
+              className="gap-1.5 text-xs font-bold"
+            >
+              <Globe className="h-4 w-4" />
+              All Notes Mode
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleEnableAllNotes}
+              className="gap-1.5 text-xs text-muted-foreground hover:text-primary"
+            >
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              Enable All Frets
+            </Button>
+
             <Button
               size="sm"
               variant="outline"
@@ -166,7 +193,7 @@ export const GuitarNeckScaleStudio: React.FC = () => {
 
           {/* 2. Scale Category & Definition Selector */}
           <div className="md:col-span-2 space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scale Formula Preset:</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scale / Fretboard Preset:</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {SCALE_DEFINITIONS.map(scale => (
                 <button
@@ -222,7 +249,7 @@ export const GuitarNeckScaleStudio: React.FC = () => {
             <Layers className="h-4 w-4 text-primary" />
             24-Fret Full Guitar Neck Diagram
           </h4>
-          <span className="text-xs text-muted-foreground">Click note to toggle ON/OFF or add to step sequencer</span>
+          <span className="text-xs text-muted-foreground">Click any note to play or toggle state (Left-click play/add, Right-click toggle)</span>
         </div>
 
         {/* Horizontal Fretboard Canvas Scroll Container (25 Columns for Frets 0 to 24) */}
@@ -276,7 +303,7 @@ export const GuitarNeckScaleStudio: React.FC = () => {
                               </div>
                             )}
 
-                            {/* Note Badge if part of current scale */}
+                            {/* Note Badge for fretboard position */}
                             {matchingNote && (
                               <button
                                 onClick={() => handleNeckNoteClick(matchingNote)}
@@ -286,12 +313,12 @@ export const GuitarNeckScaleStudio: React.FC = () => {
                                 }}
                                 className={`h-7 w-7 rounded-full text-[11px] font-mono font-bold flex items-center justify-center transition-all duration-200 shadow-md ${
                                   !matchingNote.isEnabled
-                                    ? 'bg-stone-800 text-stone-600 border border-stone-700 opacity-40 hover:opacity-80'
+                                    ? 'bg-stone-800/80 text-stone-500 border border-stone-700/60 opacity-30 hover:opacity-75 hover:border-amber-400/50'
                                     : matchingNote.isRoot
                                     ? 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 ring-2 ring-amber-300 shadow-amber-500/40 font-extrabold scale-105 active:scale-95'
                                     : 'bg-primary/90 hover:bg-primary text-primary-foreground border border-primary/40 active:scale-95'
                                 }`}
-                                title={`String ${stringNum}, Fret ${fret}: ${matchingNote.noteName} (${matchingNote.interval}) — Left click to play, Right click to toggle`}
+                                title={`String ${stringNum}, Fret ${fret}: ${matchingNote.noteName} (${matchingNote.interval}) — Left click to play, Right click to toggle ON/OFF`}
                               >
                                 {displayMode === 'noteName' ? matchingNote.noteName : matchingNote.interval}
                               </button>

@@ -115,14 +115,20 @@ export function playRahtzPluck(
   // 3. Tuned Damping Coefficients per preset
   const baseDamping =
     preset === 'nylon' ? 0.965 :
-    preset === 'electric-clean' ? 0.980 :
-    preset === 'overdrive' ? 0.975 :
-    0.975; // acoustic
+      preset === 'electric-clean' ? 0.980 :
+        preset === 'overdrive' ? 0.975 :
+          0.975; // acoustic
 
-  const damping = isLowString ? Math.min(0.985, baseDamping + 0.003) : baseDamping;
-
+  const damping =
+    isLowString
+      ? Math.min(0.985, baseDamping + 0.003)
+      : baseDamping;
   // In-loop loss filter coefficient (frequency-dependent loss inside string feedback loop)
-  const S = preset === 'nylon' ? 0.48 : 0.35;
+  const lossCoeff =
+    preset === 'nylon' ? 0.30 :
+      preset === 'electric-clean' ? 0.45 :
+        preset === 'overdrive' ? 0.40 :
+          0.36;
 
   let readPtr = 0;
   let loopPrev = 0;
@@ -131,13 +137,16 @@ export function playRahtzPluck(
   for (let i = 0; i < totalSamples; i++) {
     const idx0 = readPtr;
     const idx1 = (readPtr + 1) % N;
-
     // Linear fractional interpolation on read side
-    const currentSample = delayLine[idx0] * (1 - frac) + delayLine[idx1] * frac;
+    const currentSample =
+      delayLine[idx0] * (1 - frac) +
+      delayLine[idx1] * frac;
     synthesis[i] = currentSample;
 
     // 1-pole lowpass feedback loss filter: H(z) = (1 - S) + S * z^-1
-    const filtered = ((1 - S) * currentSample + S * loopPrev) * damping;
+    const filtered =
+      (lossCoeff * currentSample +
+        (1 - lossCoeff) * loopPrev) * damping;
     loopPrev = currentSample;
 
     delayLine[readPtr] = filtered;
@@ -169,9 +178,9 @@ export function playRahtzPluck(
 
   const cutoffHz =
     preset === 'nylon' ? 2600 :
-    preset === 'electric-clean' ? 5000 :
-    preset === 'overdrive' ? 3000 :
-    3200; // acoustic (lowered to 3.2kHz for natural warmth)
+      preset === 'electric-clean' ? 5000 :
+        preset === 'overdrive' ? 3000 :
+          3200; // acoustic (lowered to 3.2kHz for natural warmth)
 
   const lowpassFilter = ctx.createBiquadFilter();
   lowpassFilter.type = 'lowpass';
