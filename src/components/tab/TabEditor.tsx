@@ -185,7 +185,7 @@ export const TabEditor: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Toolbar */}
-      <div className="p-6 rounded-2xl glass-panel space-y-4">
+      <div className="p-4 sm:p-6 rounded-2xl glass-panel space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/40 pb-4">
           <div className="space-y-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
@@ -219,21 +219,21 @@ export const TabEditor: React.FC = () => {
               <span className="font-mono text-purple-400 font-bold">Selected Fret: #{selectedFret}</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex overflow-x-auto scrollbar-none items-center gap-1.5 pb-1 sm:pb-0">
               {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 17, 19, 21, 24].map(fret => (
                 <Button
                   key={`fret-picker-${fret}`}
                   size="sm"
                   variant={selectedFret === fret ? 'default' : 'outline'}
                   onClick={() => setSelectedFret(fret)}
-                  className="font-bold h-8 px-2 min-w-[2.1rem] text-xs"
+                  className="font-bold h-8 px-2 min-w-[2.1rem] text-xs shrink-0"
                 >
                   {fret}
                 </Button>
               ))}
 
               {/* Direct Numeric Fret Input Stepper (0 to 24) */}
-              <div className="flex items-center gap-1 ml-2 bg-muted/40 p-1 rounded-lg border border-border/40">
+              <div className="flex items-center gap-1 ml-2 bg-muted/40 p-1 rounded-lg border border-border/40 shrink-0">
                 <Button
                   size="icon"
                   variant="ghost"

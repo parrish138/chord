@@ -114,7 +114,7 @@ export const NashvilleStudio: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Key & Scale Control Panel */}
-      <div className="p-6 rounded-2xl glass-panel space-y-5">
+      <div className="p-4 sm:p-6 rounded-2xl glass-panel space-y-4 sm:space-y-5">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/40 pb-4">
           <div className="space-y-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
@@ -136,14 +136,14 @@ export const NashvilleStudio: React.FC = () => {
         {/* Root Key Selector */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-muted-foreground">Select Root Key:</label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex overflow-x-auto scrollbar-none items-center gap-1.5 pb-1 sm:pb-0">
             {ROOT_NOTES.map(key => (
               <Button
                 key={`nns-key-${key}`}
                 size="sm"
                 variant={selectedKey === key ? 'default' : 'outline'}
                 onClick={() => setSelectedKey(key)}
-                className="font-bold px-3 py-1 text-xs"
+                className="font-bold px-3 py-1 text-xs shrink-0"
               >
                 {key}
               </Button>
@@ -154,12 +154,12 @@ export const NashvilleStudio: React.FC = () => {
         {/* Scale Type Selector */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-muted-foreground">Select Scale / Mode:</label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex overflow-x-auto scrollbar-none items-center gap-2 pb-1 sm:pb-0">
             {SCALE_TYPES.map(st => (
               <button
                 key={`scale-type-${st}`}
                 onClick={() => setSelectedScale(st)}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all shrink-0 whitespace-nowrap ${
                   selectedScale === st
                     ? 'border-primary bg-primary/20 text-primary font-bold shadow-sm'
                     : 'border-border/60 hover:bg-muted text-muted-foreground'

@@ -87,7 +87,7 @@ const INITIAL_WIDGET_CONFIGS: CanvasWidgetConfig[] = [
 
 export const CanvasStudio: React.FC = () => {
   const [widgets, setWidgets] = useState<CanvasWidgetConfig[]>(INITIAL_WIDGET_CONFIGS);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   // Shared Scale State across Canvas Widgets
   const [rootNote, setRootNote] = useState<string>('C');
@@ -137,7 +137,7 @@ export const CanvasStudio: React.FC = () => {
     <div className="w-full flex flex-col lg:flex-row gap-6 items-start min-h-[80vh]">
       {/* Left-Hand Widget Manager Sidebar (Far-Left Edge) */}
       <aside className={`transition-all duration-300 shrink-0 ${isSidebarOpen ? 'w-full lg:w-72' : 'w-full lg:w-16'}`}>
-        <div className="p-5 rounded-2xl glass-panel border border-border/40 space-y-5 sticky top-20 shadow-xl">
+        <div className="p-4 sm:p-5 rounded-2xl glass-panel border border-border/40 space-y-4 sm:space-y-5 sticky top-20 shadow-xl">
           <div className="flex items-center justify-between border-b border-border/40 pb-3">
             <div className={`flex items-center gap-2 ${!isSidebarOpen && 'lg:hidden'}`}>
               <LayoutGrid className="h-5 w-5 text-primary" />
@@ -228,7 +228,7 @@ export const CanvasStudio: React.FC = () => {
       </aside>
 
       {/* Main Canvas Workspace Area */}
-      <div className="flex-1 space-y-6">
+      <div className="flex-1 space-y-6 w-full">
         {enabledWidgets.length === 0 ? (
           <div className="p-12 text-center border-2 border-dashed border-border/40 rounded-2xl glass-panel space-y-3">
             <LayoutGrid className="h-10 w-10 mx-auto text-primary/40" />
@@ -244,15 +244,15 @@ export const CanvasStudio: React.FC = () => {
               className="rounded-2xl glass-panel border border-border/40 shadow-xl overflow-hidden transition-all duration-300"
             >
               {/* Accordion Header */}
-              <div className="p-4 bg-muted/30 border-b border-border/30 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Badge variant="outline" className="text-xs font-bold font-mono border-primary/30 text-primary bg-primary/10">
+              <div className="p-3.5 sm:p-4 bg-muted/30 border-b border-border/30 flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Badge variant="outline" className="text-xs font-bold font-mono border-primary/30 text-primary bg-primary/10 truncate">
                     {widget.name}
                   </Badge>
-                  <span className="text-xs text-muted-foreground hidden sm:inline">{widget.description}</span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline truncate">{widget.description}</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -277,7 +277,7 @@ export const CanvasStudio: React.FC = () => {
 
               {/* Accordion Body Content */}
               {widget.isExpanded && (
-                <div className="p-6">
+                <div className="p-3.5 sm:p-6">
                   {widget.id === 'scale-presets' && (
                     <ScalePresetsSelector
                       rootNote={rootNote}

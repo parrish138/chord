@@ -98,3 +98,20 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.5);
 }
+
+/* Hide scrollbar utility for clean mobile horizontal scroll ribbons */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Mobile Touch Optimization Helpers */
+@media (max-width: 640px) {
+  button, input, select {
+    touch-action: manipulation;
+  }
+}
+

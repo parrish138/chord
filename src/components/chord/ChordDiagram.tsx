@@ -436,10 +436,11 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
 
           const startX = getStringX(barre.startString);
           const endX = getStringX(barre.endString);
-          const minX = Math.min(startX, endX);
-          const maxX = Math.max(startX, endX);
-          const y = getFretY(barre.fret);
           const barreHeight = size === 'sm' ? 14 : size === 'lg' ? 22 : 18;
+          const paddingX = barreHeight / 2;
+          const minX = Math.min(startX, endX) - paddingX;
+          const maxX = Math.max(startX, endX) + paddingX;
+          const y = getFretY(barre.fret);
 
           const minString = Math.min(barre.startString, barre.endString);
           const maxString = Math.max(barre.startString, barre.endString);
@@ -457,7 +458,7 @@ export const ChordDiagram: React.FC<ChordDiagramProps> = ({
               />
               {barre.finger && showFingerNumbers && activeLabelMode === 'fingering' && (
                 <text
-                  x={minX - 10}
+                  x={minX - 6}
                   y={y}
                   textAnchor="end"
                   dominantBaseline="middle"

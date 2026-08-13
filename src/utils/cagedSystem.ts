@@ -51,7 +51,7 @@ export const CAGED_TEMPLATES: CAGEDTemplate[] = [
   },
   {
     form: 'E Form', quality: '5 Chords', rootString: 6, relativeFretOffset: 0,
-    positions: [{ string: 6, fret: 1, isRoot: true, finger: '1' }, { string: 5, fret: 3, finger: '3' }, { string: 4, fret: 3, finger: '4' }],
+    positions: [{ string: 6, fret: 0, isRoot: true }, { string: 5, fret: 2, finger: '2' }, { string: 4, fret: 2, finger: '3' }],
     mutedStrings: [1, 2, 3],
   },
 
@@ -83,7 +83,7 @@ export const CAGED_TEMPLATES: CAGEDTemplate[] = [
   },
   {
     form: 'A Form', quality: '5 Chords', rootString: 5, relativeFretOffset: 0,
-    positions: [{ string: 5, fret: 1, isRoot: true, finger: '1' }, { string: 4, fret: 3, finger: '3' }, { string: 3, fret: 3, finger: '4' }],
+    positions: [{ string: 5, fret: 0, isRoot: true }, { string: 4, fret: 2, finger: '2' }, { string: 3, fret: 2, finger: '3' }],
     mutedStrings: [1, 2, 6],
   },
 
@@ -110,12 +110,13 @@ export const CAGED_TEMPLATES: CAGEDTemplate[] = [
   },
   {
     form: 'D Form', quality: 'Major7', rootString: 4, relativeFretOffset: 0,
-    positions: [{ string: 4, fret: 0, isRoot: true }, { string: 3, fret: 2, finger: '1' }, { string: 2, fret: 2, finger: '1' }, { string: 1, fret: 2, finger: '1' }],
+    positions: [{ string: 4, fret: 0, isRoot: true }],
+    barres: [{ fret: 2, startString: 1, endString: 3, finger: '1' }],
     mutedStrings: [5, 6],
   },
   {
     form: 'D Form', quality: '5 Chords', rootString: 4, relativeFretOffset: 0,
-    positions: [{ string: 4, fret: 1, isRoot: true, finger: '1' }, { string: 3, fret: 3, finger: '3' }, { string: 2, fret: 3, finger: '4' }],
+    positions: [{ string: 4, fret: 0, isRoot: true }, { string: 3, fret: 2, finger: '1' }, { string: 2, fret: 3, finger: '3' }],
     mutedStrings: [1, 5, 6],
   },
 
@@ -148,7 +149,7 @@ export const CAGED_TEMPLATES: CAGEDTemplate[] = [
   },
   {
     form: 'C Form', quality: '5 Chords', rootString: 5, relativeFretOffset: 3,
-    positions: [{ string: 5, fret: 1, isRoot: true, finger: '1' }, { string: 4, fret: 3, finger: '3' }, { string: 3, fret: 3, finger: '4' }],
+    positions: [{ string: 5, fret: 3, isRoot: true, finger: '1' }, { string: 4, fret: 5, finger: '3' }, { string: 3, fret: 5, finger: '4' }],
     mutedStrings: [1, 2, 6],
   },
 
@@ -180,8 +181,8 @@ export const CAGED_TEMPLATES: CAGEDTemplate[] = [
   },
   {
     form: 'G Form', quality: '5 Chords', rootString: 6, relativeFretOffset: 3,
-    positions: [{ string: 6, fret: 3, isRoot: true, finger: '1' }, { string: 5, fret: 5, finger: '3' }, { string: 4, fret: 5, finger: '4' }],
-    mutedStrings: [1, 2, 3],
+    positions: [{ string: 6, fret: 3, isRoot: true, finger: '1' }, { string: 2, fret: 3, finger: '3' }, { string: 1, fret: 3, finger: '4' }],
+    mutedStrings: [3, 4, 5],
   },
 ];
 

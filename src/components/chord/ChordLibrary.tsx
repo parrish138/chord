@@ -134,7 +134,7 @@ export const ChordLibrary: React.FC<ChordLibraryProps> = ({ onSelectChord }) => 
   return (
     <div className="space-y-6">
       {/* Search & Filter Header */}
-      <div className="p-6 rounded-2xl glass-panel space-y-4">
+      <div className="p-4 sm:p-6 rounded-2xl glass-panel space-y-4">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -147,12 +147,12 @@ export const ChordLibrary: React.FC<ChordLibraryProps> = ({ onSelectChord }) => 
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto justify-end">
+          <div className="flex overflow-x-auto scrollbar-none items-center gap-1.5 w-full md:w-auto justify-start md:justify-end pb-1 sm:pb-0">
             <Button
               size="sm"
               variant={selectedKey === null ? 'default' : 'outline'}
               onClick={() => setSelectedKey(null)}
-              className="text-xs"
+              className="text-xs shrink-0"
             >
               All Keys
             </Button>
@@ -162,7 +162,7 @@ export const ChordLibrary: React.FC<ChordLibraryProps> = ({ onSelectChord }) => 
                 size="sm"
                 variant={selectedKey === k ? 'default' : 'outline'}
                 onClick={() => setSelectedKey(selectedKey === k ? null : k)}
-                className="text-xs font-bold px-2.5"
+                className="text-xs font-bold px-2.5 shrink-0"
               >
                 {k}
               </Button>
@@ -171,8 +171,8 @@ export const ChordLibrary: React.FC<ChordLibraryProps> = ({ onSelectChord }) => 
         </div>
 
         {/* Quality Filter Bar */}
-        <div className="flex items-center gap-2 pt-2 border-t border-border/40 text-xs">
-          <span className="text-muted-foreground flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40 text-xs">
+          <span className="text-muted-foreground flex items-center gap-1 shrink-0 mr-1">
             <Filter className="h-3.5 w-3.5" /> Type:
           </span>
           {['All', 'Major', 'Minor', '7th/Ext'].map(type => {

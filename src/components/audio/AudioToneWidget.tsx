@@ -111,10 +111,10 @@ export const AudioToneWidget: React.FC = () => {
   };
 
   return (
-    <div className="fixed right-4 bottom-6 z-50 flex items-end gap-2">
+    <div className="fixed right-2 sm:right-4 bottom-4 sm:bottom-6 z-50 flex flex-col items-end gap-2 max-w-[calc(100vw-1rem)]">
       {/* Expanded Control Panel */}
       {isOpen && (
-        <div className="w-96 p-5 rounded-2xl glass-panel border border-border/60 shadow-2xl space-y-4 animate-in slide-in-from-right-5 fade-in-0 max-h-[90vh] overflow-y-auto">
+        <div className="w-[calc(100vw-2rem)] max-w-sm sm:w-96 p-4 sm:p-5 rounded-2xl glass-panel border border-border/60 shadow-2xl space-y-4 animate-in slide-in-from-right-5 fade-in-0 max-h-[85vh] overflow-y-auto">
           {/* Header & Sub-Tab Switcher */}
           <div className="flex items-center justify-between border-b border-border/40 pb-3">
             <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/60 border border-border/40 text-xs">

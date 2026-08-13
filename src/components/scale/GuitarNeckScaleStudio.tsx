@@ -396,7 +396,7 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
             {/* 1. Root Note Selector */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Root Note (Tonic):</label>
-              <div className="grid grid-cols-6 gap-1.5">
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
                 {NOTES_CHROMATIC.map(n => (
                   <button
                     key={`root-select-${n}`}
@@ -416,7 +416,7 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
             {/* 2. Scale Category & Definition Selector */}
             <div className="md:col-span-2 space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scale / Fretboard Preset:</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {SCALE_DEFINITIONS.filter(s => s.id !== 'all-notes').map(scale => (
                   <button
                     key={`scale-select-${scale.id}`}
@@ -429,7 +429,7 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
                   >
                     <div className="font-bold flex items-center justify-between">
                       <span className="line-clamp-1">{scale.name}</span>
-                      <Badge variant="secondary" className="text-[9px] px-1 py-0 capitalize opacity-80">
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0 capitalize opacity-80 shrink-0">
                         {scale.category.replace('-', ' ')}
                       </Badge>
                     </div>
@@ -596,7 +596,11 @@ export const GuitarNeckScaleStudio: React.FC<GuitarNeckScaleStudioProps> = ({
         </div>
 
         {/* Horizontal Fretboard Canvas Scroll Container (25 Columns for Frets 0 to 24) */}
-        <div className="overflow-x-auto pb-4">
+        <div className="text-[10px] text-muted-foreground font-mono flex items-center justify-between sm:hidden px-1 pb-1">
+          <span>← Swipe neck horizontally →</span>
+          <span className="text-amber-400 font-bold">24 Frets</span>
+        </div>
+        <div className="overflow-x-auto pb-4 scrollbar-none">
           <div className="min-w-[1200px] relative bg-stone-900 rounded-xl p-5 border border-stone-800 shadow-2xl">
             {/* Fret Numbers Header (25 Columns for Fret 0 through 24) */}
             <div 

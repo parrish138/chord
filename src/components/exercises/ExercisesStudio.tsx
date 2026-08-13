@@ -641,7 +641,7 @@ export const ExercisesStudio: React.FC = () => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Exercise Selection Switcher Header */}
-      <div className="p-6 rounded-2xl glass-panel border border-border/40 space-y-6">
+      <div className="p-4 sm:p-6 rounded-2xl glass-panel border border-border/40 space-y-4 sm:space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -654,12 +654,12 @@ export const ExercisesStudio: React.FC = () => {
           </div>
 
           {/* 5-Way Prominent Exercise Selection Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shadow-inner">
+          <div className="flex overflow-x-auto scrollbar-none items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shadow-inner w-full md:w-auto">
             <Button
               size="sm"
               variant={selectedExercise === 'spider' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('spider'); }}
-              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'spider' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`gap-1.5 text-xs font-bold transition-all shrink-0 whitespace-nowrap ${selectedExercise === 'spider' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span>1. Spider Drill</span>
@@ -668,7 +668,7 @@ export const ExercisesStudio: React.FC = () => {
               size="sm"
               variant={selectedExercise === 'strum' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('strum'); }}
-              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'strum' ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`gap-1.5 text-xs font-bold transition-all shrink-0 whitespace-nowrap ${selectedExercise === 'strum' ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <ChevronsUpDown className="h-3.5 w-3.5" />
               <span>2. Strum & Pick</span>
@@ -677,16 +677,16 @@ export const ExercisesStudio: React.FC = () => {
               size="sm"
               variant={selectedExercise === 'modal-shift' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('modal-shift'); }}
-              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'modal-shift' ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`gap-1.5 text-xs font-bold transition-all shrink-0 whitespace-nowrap ${selectedExercise === 'modal-shift' ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <Music className="h-3.5 w-3.5" />
-              <span>3. Modal Shift (Characteristic)</span>
+              <span>3. Modal Shift</span>
             </Button>
             <Button
               size="sm"
               variant={selectedExercise === 'chord-tone' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('chord-tone'); }}
-              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'chord-tone' ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`gap-1.5 text-xs font-bold transition-all shrink-0 whitespace-nowrap ${selectedExercise === 'chord-tone' ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <Dumbbell className="h-3.5 w-3.5" />
               <span>4. Chord-Tone Targeter</span>
@@ -695,7 +695,7 @@ export const ExercisesStudio: React.FC = () => {
               size="sm"
               variant={selectedExercise === 'tension-resolution' ? 'default' : 'ghost'}
               onClick={() => { setIsPlaying(false); setSelectedExercise('tension-resolution'); }}
-              className={`gap-1.5 text-xs font-bold transition-all ${selectedExercise === 'tension-resolution' ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`gap-1.5 text-xs font-bold transition-all shrink-0 whitespace-nowrap ${selectedExercise === 'tension-resolution' ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md font-black' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <RotateCcw className="h-3.5 w-3.5" />
               <span>5. Tension & Resolution</span>

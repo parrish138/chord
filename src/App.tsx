@@ -102,45 +102,45 @@ export function App() {
 
         {/* Primary Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} className="w-full">
-          <div className="flex justify-center">
-            <TabsList className="grid grid-cols-5 sm:grid-cols-10 w-full max-w-6xl">
-              <TabsTrigger value="canvas" className="gap-1.5 text-xs font-extrabold text-primary">
+          <div className="flex justify-center w-full">
+            <TabsList className="flex overflow-x-auto scrollbar-none sm:grid sm:grid-cols-10 w-full max-w-6xl p-1 gap-1 sm:gap-0 justify-start sm:justify-center rounded-xl bg-muted/60">
+              <TabsTrigger value="canvas" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs font-extrabold text-primary whitespace-nowrap">
                 <LayoutGrid className="h-4 w-4 text-pink-400" />
                 <span>Canvas</span>
               </TabsTrigger>
-              <TabsTrigger value="scale-neck" className="gap-1.5 text-xs font-bold">
+              <TabsTrigger value="scale-neck" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs font-bold whitespace-nowrap">
                 <GitCommit className="h-4 w-4 text-amber-400" />
                 <span>Scale Neck</span>
               </TabsTrigger>
-              <TabsTrigger value="nashville" className="gap-1.5 text-xs">
+              <TabsTrigger value="nashville" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <Hash className="h-4 w-4" />
                 <span>Nashville</span>
               </TabsTrigger>
-              <TabsTrigger value="caged" className="gap-1.5 text-xs">
+              <TabsTrigger value="caged" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <Layers className="h-4 w-4" />
                 <span>CAGED</span>
               </TabsTrigger>
-              <TabsTrigger value="tab" className="gap-1.5 text-xs">
+              <TabsTrigger value="tab" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <Music className="h-4 w-4" />
                 <span>Tablature</span>
               </TabsTrigger>
-              <TabsTrigger value="exercises" className="gap-1.5 text-xs">
+              <TabsTrigger value="exercises" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <Dumbbell className="h-4 w-4" />
                 <span>Exercises</span>
               </TabsTrigger>
-              <TabsTrigger value="designer" className="gap-1.5 text-xs">
+              <TabsTrigger value="designer" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <Sliders className="h-4 w-4" />
                 <span>Designer</span>
               </TabsTrigger>
-              <TabsTrigger value="library" className="gap-1.5 text-xs">
+              <TabsTrigger value="library" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <Library className="h-4 w-4" />
                 <span>Library</span>
               </TabsTrigger>
-              <TabsTrigger value="songbook" className="gap-1.5 text-xs">
+              <TabsTrigger value="songbook" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <BookOpen className="h-4 w-4" />
                 <span>Songbook</span>
               </TabsTrigger>
-              <TabsTrigger value="docs" className="gap-1.5 text-xs">
+              <TabsTrigger value="docs" className="shrink-0 px-3 py-1.5 sm:px-2 gap-1.5 text-xs whitespace-nowrap">
                 <Code2 className="h-4 w-4" />
                 <span>Docs</span>
               </TabsTrigger>

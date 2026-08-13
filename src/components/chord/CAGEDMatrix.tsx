@@ -18,9 +18,17 @@ const CAGED_FORMS: CAGEDForm[] = ['E Form', 'A Form', 'D Form', 'C Form', 'G For
 const CAGED_QUALITIES: CAGEDQuality[] = ['Major', 'Minor', '7', 'Minor 7', 'Major7', '5 Chords'];
 
 export const CAGEDMatrix: React.FC<CAGEDMatrixProps> = ({ onSelectChord }) => {
-  const [mode, setMode] = useState<'reference' | 'transposed'>('reference');
+  const [mode, setMode] = useState<'reference' | 'transposed'>('transposed');
   const [selectedRoot, setSelectedRoot] = useState<string>('F');
   const [selectedTheoryChord, setSelectedTheoryChord] = useState<ChordDefinition | null>(null);
+
+  const FORM_ROOT_STRINGS: Record<CAGEDForm, string> = {
+    'E Form': 'Root Str 6 (Low E)',
+    'A Form': 'Root Str 5 (A)',
+    'D Form': 'Root Str 4 (D)',
+    'C Form': 'Root Str 5 (A)',
+    'G Form': 'Root Str 6 (Low E)',
+  };
 
   return (
     <div className="space-y-6">
@@ -30,20 +38,29 @@ export const CAGEDMatrix: React.FC<CAGEDMatrixProps> = ({ onSelectChord }) => {
           <div className="space-y-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
               <Layers className="h-5 w-5 text-primary" />
-              <h3 className="font-extrabold text-xl tracking-tight">CAGED System Shape Matrix</h3>
-              <Badge variant={mode === 'reference' ? 'purple' : 'emerald'}>
-                {mode === 'reference' ? 'Reference Form Map' : `Transposed to ${selectedRoot}`}
+              <h3 className="font-extrabold text-xl tracking-tight">CAGED System Movable Barre Chords Matrix</h3>
+              <Badge variant={mode === 'transposed' ? 'emerald' : 'purple'}>
+                {mode === 'transposed' ? `Movable Barre Chords (${selectedRoot})` : 'Open Position Reference Map'}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              {mode === 'reference'
-                ? 'Study the 30 fundamental CAGED open form shapes and finger patterns (matching textbook reference map).'
-                : 'Transpose all 30 CAGED shapes dynamically to any root key up the guitar fretboard.'}
+              {mode === 'transposed'
+                ? `All 30 CAGED shapes rendered as movable barre chords (index finger barre) transposed to key of ${selectedRoot}.`
+                : 'Fundamental open string CAGED base shapes at nut position.'}
             </p>
           </div>
 
           {/* Mode Switch Buttons */}
-          <div className="flex items-center gap-2 bg-muted/60 p-1 rounded-xl border border-border/40">
+          <div className="flex items-center gap-2 bg-muted/60 p-1 rounded-xl border border-border/40 shrink-0">
+            <Button
+              size="sm"
+              variant={mode === 'transposed' ? 'default' : 'ghost'}
+              onClick={() => setMode('transposed')}
+              className="gap-1.5 text-xs font-bold"
+            >
+              <Sliders className="h-3.5 w-3.5" />
+              Movable Barre Chords
+            </Button>
             <Button
               size="sm"
               variant={mode === 'reference' ? 'default' : 'ghost'}
@@ -51,16 +68,7 @@ export const CAGEDMatrix: React.FC<CAGEDMatrixProps> = ({ onSelectChord }) => {
               className="gap-1.5 text-xs font-semibold"
             >
               <BookOpen className="h-3.5 w-3.5" />
-              Form Reference Map
-            </Button>
-            <Button
-              size="sm"
-              variant={mode === 'transposed' ? 'default' : 'ghost'}
-              onClick={() => setMode('transposed')}
-              className="gap-1.5 text-xs font-semibold"
-            >
-              <Sliders className="h-3.5 w-3.5" />
-              Transposed Key Generator
+              Open Position Shapes
             </Button>
           </div>
         </div>
@@ -69,7 +77,7 @@ export const CAGEDMatrix: React.FC<CAGEDMatrixProps> = ({ onSelectChord }) => {
         {mode === 'transposed' && (
           <div className="space-y-2 pt-1 animate-in fade-in-0">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-muted-foreground">Select Transposition Root Key:</label>
+              <label className="text-xs font-semibold text-muted-foreground">Select Target Barre Chord Root Key:</label>
               <span className="text-xs font-mono text-primary font-bold">Target Key: {selectedRoot}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -90,12 +98,16 @@ export const CAGEDMatrix: React.FC<CAGEDMatrixProps> = ({ onSelectChord }) => {
       </div>
 
       {/* Responsive Matrix Grid */}
-      <div className="overflow-x-auto rounded-2xl glass-panel p-6 border border-border/40">
+      <div className="text-[10px] text-muted-foreground font-mono flex items-center justify-between sm:hidden px-1 pb-1">
+        <span>← Swipe matrix horizontally →</span>
+        <span className="text-primary font-bold">30 CAGED Barre Shapes</span>
+      </div>
+      <div className="overflow-x-auto scrollbar-none rounded-2xl glass-panel p-3.5 sm:p-6 border border-border/40">
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="p-3 text-left font-bold text-sm text-muted-foreground border-b border-border/40 min-w-[100px]">
-                Form / Quality
+              <th className="p-3 text-left font-bold text-sm text-muted-foreground border-b border-border/40 min-w-[130px]">
+                CAGED Form / Quality
               </th>
               {CAGED_QUALITIES.map(q => (
                 <th key={`col-${q}`} className="p-3 text-center font-bold text-sm text-foreground border-b border-border/40 min-w-[140px]">
@@ -107,8 +119,9 @@ export const CAGEDMatrix: React.FC<CAGEDMatrixProps> = ({ onSelectChord }) => {
           <tbody>
             {CAGED_FORMS.map(form => (
               <tr key={`row-${form}`} className="border-b border-border/30 hover:bg-white/5 transition-colors">
-                <td className="p-3 font-extrabold text-sm text-primary align-middle whitespace-nowrap">
-                  {form}
+                <td className="p-3 align-middle whitespace-nowrap">
+                  <div className="font-extrabold text-sm text-primary">{form}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{FORM_ROOT_STRINGS[form]}</div>
                 </td>
 
                 {CAGED_QUALITIES.map(quality => {

@@ -142,13 +142,13 @@ export const UnifiedGuitarSequencer: React.FC<UnifiedGuitarSequencerProps> = ({ 
   }, []);
 
   return (
-    <div className={`p-6 rounded-2xl glass-panel border border-border/40 space-y-6 ${className}`}>
+    <div className={`p-4 sm:p-6 rounded-2xl glass-panel border border-border/40 space-y-6 ${className}`}>
       {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-amber-400" />
-            <h3 className="font-extrabold text-xl tracking-tight">Main Unified Guitar Sequencer</h3>
+            <h3 className="font-extrabold text-lg sm:text-xl tracking-tight">Main Unified Guitar Sequencer</h3>
             <Badge variant="purple" className="text-xs">Master Timeline</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -157,7 +157,7 @@ export const UnifiedGuitarSequencer: React.FC<UnifiedGuitarSequencerProps> = ({ 
         </div>
 
         {/* Master Controls: Play, Loop, Clear, BPM */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button
             size="sm"
             variant={isLooping ? 'default' : 'outline'}
@@ -195,12 +195,12 @@ export const UnifiedGuitarSequencer: React.FC<UnifiedGuitarSequencerProps> = ({ 
       {/* Preset Chord Quick-Add Ribbon */}
       <div className="space-y-2">
         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Quick Add Chord to Sequence:</label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {PRESET_CHORDS.slice(0, 8).map(c => (
             <button
               key={`quick-chord-${c.id}`}
               onClick={() => handleAddChordStep(c)}
-              className="px-3 py-1.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-primary/15 hover:border-primary/40 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
+              className="px-2.5 py-1.5 rounded-xl border border-border/60 bg-muted/40 hover:bg-primary/15 hover:border-primary/40 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
             >
               <Plus className="h-3.5 w-3.5 text-primary" />
               <span>{c.name}</span>
@@ -218,7 +218,7 @@ export const UnifiedGuitarSequencer: React.FC<UnifiedGuitarSequencerProps> = ({ 
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 overflow-x-auto">
+          <div className="flex overflow-x-auto scrollbar-none items-center gap-3 p-3 sm:p-4 rounded-xl bg-slate-950/70 border border-slate-800/80">
             {sequence.map((step, idx) => {
               const isActive = isPlaying && activeStepIndex === idx;
 
